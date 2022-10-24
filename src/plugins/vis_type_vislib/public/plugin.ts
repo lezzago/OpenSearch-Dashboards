@@ -54,9 +54,18 @@ import {
   createGoalVisTypeDefinition,
 } from './vis_type_vislib_vis_types';
 import { ChartsPluginSetup } from '../../charts/public';
-import { DataPublicPluginStart } from '../../data/public';
-import { setFormatService, setDataActions, setOpenSearchDashboardsLegacy } from './services';
+import { DataPublicPluginSetup, DataPublicPluginStart } from '../../data/public';
+import {
+  setFormatService,
+  setDataActions,
+  setOpenSearchDashboardsLegacy,
+  setMapsLegacyConfig,
+  setInjectedVars,
+  setUISettings,
+} from './services';
 import { OpenSearchDashboardsLegacyStart } from '../../opensearch_dashboards_legacy/public';
+import { ConfigSchema } from '../../vis_type_vega/config';
+import { VegaVisualizationDependencies } from '../../vis_type_vega/public';
 
 export interface VisTypeVislibDependencies {
   uiSettings: IUiSettingsClient;
@@ -69,6 +78,8 @@ export interface VisTypeVislibPluginSetupDependencies {
   visualizations: VisualizationsSetup;
   charts: ChartsPluginSetup;
   visTypeXy?: VisTypeXyPluginSetup;
+  data: DataPublicPluginSetup;
+  mapsLegacy: any;
 }
 
 /** @internal */
@@ -81,19 +92,36 @@ type VisTypeVislibCoreSetup = CoreSetup<VisTypeVislibPluginStartDependencies, vo
 
 /** @internal */
 export class VisTypeVislibPlugin implements Plugin<void, void> {
-  constructor(public initializerContext: PluginInitializerContext) {}
+  initializerContext: PluginInitializerContext<ConfigSchema>;
+
+  constructor(initializerContext: PluginInitializerContext<ConfigSchema>) {
+    this.initializerContext = initializerContext;
+  }
 
   public async setup(
     core: VisTypeVislibCoreSetup,
-    { expressions, visualizations, charts, visTypeXy }: VisTypeVislibPluginSetupDependencies
+    {
+      expressions,
+      visualizations,
+      charts,
+      visTypeXy,
+      data,
+      mapsLegacy,
+    }: VisTypeVislibPluginSetupDependencies
   ) {
+    setInjectedVars({
+      enableExternalUrls: this.initializerContext.config.get().enableExternalUrls,
+      emsTileLayerId: core.injectedMetadata.getInjectedVar('emsTileLayerId', true),
+    });
+    setUISettings(core.uiSettings);
+    setMapsLegacyConfig(mapsLegacy.config);
     const visualizationDependencies: Readonly<VisTypeVislibDependencies> = {
       uiSettings: core.uiSettings,
       charts,
     };
     const vislibTypes = [
       createHistogramVisTypeDefinition,
-      createLineVisTypeDefinition,
+      // createLineVisTypeDefinition,
       createPieVisTypeDefinition,
       createAreaVisTypeDefinition,
       createHeatmapVisTypeDefinition,
@@ -119,6 +147,17 @@ export class VisTypeVislibPlugin implements Plugin<void, void> {
     vislibFns.forEach(expressions.registerFunction);
     vislibTypes.forEach((vis) =>
       visualizations.createBaseVisualization(vis(visualizationDependencies))
+    );
+
+    const lineVisualizationDependencies: Readonly<VegaVisualizationDependencies> = {
+      core,
+      plugins: {
+        data,
+      },
+      getServiceSettings: mapsLegacy.getServiceSettings,
+    };
+    visualizations.createBaseVisualization(
+      createLineVisTypeDefinition(lineVisualizationDependencies)
     );
   }
 

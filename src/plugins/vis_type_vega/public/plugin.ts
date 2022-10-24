@@ -45,6 +45,7 @@ import {
 
 import { createVegaFn } from './vega_fn';
 import { createVegaTypeDefinition } from './vega_type';
+// import { createVegaLineDefinition } from './vega_line';
 import { IServiceSettings } from '../../maps_legacy/public';
 import './index.scss';
 import { ConfigSchema } from '../config';
@@ -106,6 +107,7 @@ export class VegaPlugin implements Plugin<Promise<void>, void> {
     expressions.registerFunction(() => createVegaFn(visualizationDependencies));
 
     visualizations.createBaseVisualization(createVegaTypeDefinition(visualizationDependencies));
+    // visualizations.createBaseVisualization(createVegaLineDefinition(visualizationDependencies));
   }
 
   public start(core: CoreStart, { data }: VegaPluginStartDependencies) {

@@ -79,3 +79,5 @@ export { lazyLoadMapsLegacyModules } from './lazy_load_bundle';
 
 export type MapsLegacyPluginSetup = ReturnType<MapsLegacyPlugin['setup']>;
 export type MapsLegacyPluginStart = ReturnType<MapsLegacyPlugin['start']>;
+
+export { getServiceSettings } from './get_service_settings';

@@ -31,7 +31,7 @@
 import { i18n } from '@osd/i18n';
 import { getNotifications, getData } from './services';
 
-export const createVegaVisualization = ({ getServiceSettings }) =>
+export const createVegaVisualizationLine = ({ getServiceSettings }) =>
   class VegaVisualization {
     constructor(el, vis) {
       this._el = el;
@@ -45,8 +45,11 @@ export const createVegaVisualization = ({ getServiceSettings }) =>
      * @param {*} status
      * @returns {Promise<void>}
      */
-    async render(visData) {
+    async render(visDataOld) {
       const { toasts } = getNotifications();
+
+      //Convert visData to the new format for vega
+      const visData = { spec: visDataOld };
 
       if (!visData && !this._vegaView) {
         toasts.addWarning(
@@ -81,8 +84,8 @@ export const createVegaVisualization = ({ getServiceSettings }) =>
         }
 
         const serviceSettings = await getServiceSettings();
-        // console.log('serviceSettings stuff:');
-        // console.log(JSON.stringify(serviceSettings));
+        console.log('serviceSettings stuff:');
+        console.log(JSON.stringify(serviceSettings));
         const { filterManager } = this.dataPlugin.query;
         const { timefilter } = this.dataPlugin.query.timefilter;
         const vegaViewParams = {

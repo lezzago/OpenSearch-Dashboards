@@ -44,12 +44,17 @@ import { createVegaVisualization } from './vega_visualization';
 import { getDefaultSpec } from './default_spec';
 import { createInspectorAdapters } from './vega_inspector';
 import { VIS_EVENT_TO_TRIGGER } from '../../visualizations/public';
+// import { getServiceSettings } from '../../maps_legacy/public';
 
 export const createVegaTypeDefinition = (
   dependencies: VegaVisualizationDependencies
 ): BaseVisTypeOptions => {
   const requestHandler = createVegaRequestHandler(dependencies);
-  const visualization = createVegaVisualization(dependencies);
+  const getServiceSettings = dependencies.getServiceSettings;
+  // const foo = { deps: '', a: 10 };
+  // const bar = { ...foo, b: 10 };
+
+  const visualization = createVegaVisualization({ getServiceSettings });
 
   return {
     name: 'vega',

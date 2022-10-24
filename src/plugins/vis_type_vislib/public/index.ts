@@ -35,6 +35,16 @@ export function plugin(initializerContext: PluginInitializerContext) {
   return new Plugin(initializerContext);
 }
 
-export { getConfigCollections } from './utils/collections';
+export {
+  getConfigCollections,
+  AxisModes,
+  AxisTypes,
+  ChartModes,
+  ChartTypes,
+  InterpolationModes,
+  ScaleTypes,
+  ThresholdLineStyles,
+} from './utils/collections';
+export { getAreaOptionTabs, countLabel } from './utils/common_config';
 
 export * from './types';

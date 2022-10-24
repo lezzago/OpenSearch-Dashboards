@@ -35,3 +35,8 @@ import { VegaPlugin as Plugin } from './plugin';
 export function plugin(initializerContext: PluginInitializerContext<ConfigSchema>) {
   return new Plugin(initializerContext);
 }
+
+// @ts-ignore
+export { createVegaVisualizationLine } from './vega_visualization_line';
+export { VegaVisualizationDependencies } from './plugin';
+export { VegaExpressionFunctionDefinition } from './vega_fn';

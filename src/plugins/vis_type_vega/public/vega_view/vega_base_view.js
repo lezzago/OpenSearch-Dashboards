@@ -94,9 +94,9 @@ export class VegaBaseView {
       this._$parentEl.empty().addClass(`vgaVis`).css('flex-direction', this._parser.containerDir);
 
       // bypass the onWarn warning checks - in some cases warnings may still need to be shown despite being disabled
-      for (const warn of this._parser.warnings) {
-        this._addMessage('warn', warn);
-      }
+      // for (const warn of this._parser.warnings) {
+      //   this._addMessage('warn', warn);
+      // }
 
       if (this._parser.error) {
         this._addMessage('err', this._parser.error);
@@ -437,10 +437,10 @@ export class VegaBaseView {
    * Set global debug variable to simplify vega debugging in console. Show info message first time
    */
   setDebugValues(view, spec, vlspec) {
-    this._parser.searchAPI.inspectorAdapters?.vega.bindInspectValues({
-      view,
-      spec: vlspec || spec,
-    });
+    // this._parser.searchAPI.inspectorAdapters?.vega.bindInspectValues({
+    //   view,
+    //   spec: vlspec || spec,
+    // });
 
     if (window) {
       if (window.VEGA_DEBUG === undefined && console) {
