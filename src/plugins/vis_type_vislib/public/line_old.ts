@@ -54,6 +54,7 @@ import { createVegaVisualizationLine, VegaVisualizationDependencies } from '../.
 // import { getServiceSettings } from '../../maps_legacy/public';
 // import { VegaVisualizationDependencies } from '../../vis_type_vega/public';
 
+//This is some old code to keep in case I need to refer to it again.
 export const createLineVisTypeDefinition = (deps: VegaVisualizationDependencies) => {
   // const vegaDepen = { ...deps, getServiceSettings };
   return {
