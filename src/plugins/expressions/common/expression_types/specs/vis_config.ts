@@ -4,9 +4,6 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Any modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -28,16 +25,32 @@
  * under the License.
  */
 
-import { PluginInitializerContext } from 'opensearch-dashboards/public';
-import { ConfigSchema } from '../config';
-import { VegaPlugin as Plugin } from './plugin';
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
 
-export function plugin(initializerContext: PluginInitializerContext<ConfigSchema>) {
-  return new Plugin(initializerContext);
+import { ExpressionTypeDefinition } from '../types';
+import { VisParams } from '../../../../visualizations/public';
+
+const name = 'vis_config';
+
+export interface VisConfig {
+  type: typeof name;
+  // note that VisParams is just a dict: { [key: string]: any }
+  visConfig: VisParams;
 }
 
-// @ts-ignore
-export { createVegaVisualizationLine } from './vega_visualization_line';
-export { VegaVisualizationDependencies } from './plugin';
-export { VegaExpressionFunctionDefinition } from './vega_fn';
-export { VegaSpecExpressionFunctionDefinition } from './vega_spec';
+// the 'from' field specifies that if null is passed as the value,
+// default to setting it as VisConfig with an empty value for visConfig field
+export const visConfig: ExpressionTypeDefinition<typeof name, VisConfig> = {
+  name,
+  from: {
+    null: () => {
+      return {
+        type: name,
+        visConfig: {},
+      };
+    },
+  },
+};

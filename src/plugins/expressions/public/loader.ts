@@ -137,6 +137,17 @@ export class ExpressionLoader {
     return this.execution ? (this.execution.inspect() as Adapters) : undefined;
   }
 
+  // input/output is the same as the run() fn ran inside this one. This fn is simply to pass
+  // along the request to the expressions plugin to execute it, rather than having to instantiate
+  // the expressions service separately in another plugin
+  run = <Input, Output, ExtraContext extends Record<string, unknown> = Record<string, unknown>>(
+    ast: string | ExpressionAstExpression,
+    input: Input,
+    context?: ExtraContext
+  ): Promise<Output> => {
+    return getExpressionsService().run(ast, input, context);
+  };
+
   update(expression?: string | ExpressionAstExpression, params?: IExpressionLoaderParams): void {
     this.setParams(params);
 

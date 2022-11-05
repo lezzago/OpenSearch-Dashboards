@@ -4,9 +4,6 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Any modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
@@ -28,16 +25,33 @@
  * under the License.
  */
 
-import { PluginInitializerContext } from 'opensearch-dashboards/public';
-import { ConfigSchema } from '../config';
-import { VegaPlugin as Plugin } from './plugin';
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
 
-export function plugin(initializerContext: PluginInitializerContext<ConfigSchema>) {
-  return new Plugin(initializerContext);
+import { ExpressionTypeDefinition } from '../types';
+import { AugmentVisFields } from '../../../../visualizations/public';
+
+const name = 'augment_vis_data';
+
+export interface AugmentVisData {
+  type: typeof name;
+  data: AugmentVisFields;
 }
 
-// @ts-ignore
-export { createVegaVisualizationLine } from './vega_visualization_line';
-export { VegaVisualizationDependencies } from './plugin';
-export { VegaExpressionFunctionDefinition } from './vega_fn';
-export { VegaSpecExpressionFunctionDefinition } from './vega_spec';
+// the 'from' field specifies that if null is passed as the value,
+// default to setting it as AugmentVisData with an empty annotations array
+export const augmentVisData: ExpressionTypeDefinition<typeof name, AugmentVisData> = {
+  name,
+  from: {
+    null: () => {
+      return {
+        type: name,
+        data: {
+          annotations: [],
+        },
+      };
+    },
+  },
+};

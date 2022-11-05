@@ -28,11 +28,24 @@
  * under the License.
  */
 
-import { get } from 'lodash';
+import { get, isEmpty } from 'lodash';
 import moment from 'moment';
-import { formatExpression, SerializedFieldFormat } from '../../../../plugins/expressions/public';
+import {
+  formatExpression,
+  SerializedFieldFormat,
+  buildExpressionFunction,
+  buildExpression,
+  ExpressionAstFunctionBuilder,
+} from '../../../../plugins/expressions/public';
 import { IAggConfig, search, TimefilterContract } from '../../../../plugins/data/public';
-import { Vis, VisParams } from '../types';
+import {
+  Vis,
+  VisParams,
+  VisToExpressionAstParams,
+  FeatureAnywhereSavedObject,
+  FeatureAnywhereFunctionDefinition,
+  AugmentVisFields,
+} from '../types';
 const { isDateHistogramBucketAggConfig } = search.aggs;
 
 interface SchemaConfigParams {
@@ -81,11 +94,9 @@ interface BuildVisConfigFunction {
   [key: string]: buildVisConfigFunction;
 }
 
-export interface BuildPipelineParams {
-  timefilter: TimefilterContract;
-  timeRange?: any;
-  abortSignal?: AbortSignal;
-}
+// These contain the same fields. For now there's no extra fields
+// needed for BuildPipelineParams so the obj is empty.
+export interface BuildPipelineParams extends VisToExpressionAstParams {}
 
 const vislibCharts: string[] = [
   'area',
@@ -191,11 +202,13 @@ export const getSchemas = <TVisParams>(
   return schemas;
 };
 
-export const prepareJson = (variable: string, data?: object): string => {
+export const prepareJson = (variable: string, data?: object | string): string => {
   if (data === undefined) {
     return '';
   }
-  return `${variable}='${JSON.stringify(data).replace(/\\/g, `\\\\`).replace(/'/g, `\\'`)}' `;
+  return typeof data === 'string'
+    ? `${variable}='${data}'`
+    : `${variable}='${JSON.stringify(data).replace(/\\/g, `\\\\`).replace(/'/g, `\\'`)}' `;
 };
 
 export const escapeString = (data: string): string => {
@@ -461,4 +474,53 @@ export const buildPipeline = async (vis: Vis, params: BuildPipelineParams) => {
   }
 
   return pipeline;
+};
+
+// returns any feature-anywhere saved objects associated with this vis
+export const getFeatureAnywhereSavedObjs = (
+  visId: string | undefined
+): FeatureAnywhereSavedObject[] => {
+  // for now use a dummy saved obj. in the future, use saved obj apis to
+  // fetch and sort through any relevant feature-anywhere saved objs based on visId arg
+  const savedObjectsFound = [
+    {
+      visId: '0d0b6850-56ee-11ed-9043-0370c51f768c',
+      expressionFnName: 'overlay_anomalies',
+      expressionFnArgs: {
+        detectorId: '7uDr5oMBJSTDLAJPKn3R',
+        // somethingElse: {
+        //   another: 'field',
+        // },
+      },
+    },
+    // {
+    //   expressionFnName: 'overlay_alerts',
+    //   expressionFnArgs: {
+    //     monitorId: 'xyz789',
+    //   },
+    // },
+  ] as FeatureAnywhereSavedObject[];
+
+  return savedObjectsFound.filter((savedObject) => savedObject.visId === visId);
+};
+
+// parses out an array of feature-anywhere saved object into a pipeline string
+export const buildPipelineFromFeatureAnywhereSavedObjs = (
+  objs: FeatureAnywhereSavedObject[]
+): string => {
+  const featureAnywhereExpressionFns = [] as ExpressionAstFunctionBuilder<
+    FeatureAnywhereFunctionDefinition
+  >[];
+
+  objs.forEach((obj: FeatureAnywhereSavedObject) => {
+    featureAnywhereExpressionFns.push(
+      buildExpressionFunction<FeatureAnywhereFunctionDefinition>(
+        obj.expressionFnName,
+        obj.expressionFnArgs
+      )
+    );
+  });
+
+  const ast = buildExpression(featureAnywhereExpressionFns).toAst();
+  return formatExpression(ast);
 };

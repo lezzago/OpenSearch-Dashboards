@@ -28,7 +28,11 @@
  * under the License.
  */
 
-import { ExpressionAstExpression } from 'src/plugins/expressions';
+import {
+  ExpressionAstExpression,
+  ExpressionFunctionDefinition,
+  VisConfig,
+} from 'src/plugins/expressions';
 import { SavedObject } from '../../saved_objects/public';
 import {
   AggConfigOptions,
@@ -82,9 +86,36 @@ export interface VisToExpressionAstParams {
   timefilter: TimefilterContract;
   timeRange?: any;
   abortSignal?: AbortSignal;
+  augmentVisFields?: AugmentVisFields;
 }
 
 export type VisToExpressionAst<TVisParams = VisParams> = (
   vis: Vis<TVisParams>,
   params: VisToExpressionAstParams
 ) => ExpressionAstExpression;
+
+export type FeatureAnywhereSavedObject = {
+  expressionFnName: string;
+  expressionFnArgs: { [x: string]: any };
+  // visId may be removed. using temporarily to associate a
+  // feature anywhere saved object to a particular vis
+  visId?: string;
+};
+
+export type FeatureAnywhereFunctionDefinition = ExpressionFunctionDefinition<
+  string,
+  VisConfig,
+  any,
+  Promise<VisConfig>
+>;
+
+export type Annotation = {
+  name: string;
+  timestamps: number[];
+};
+
+// We keep a generic interface in case of further types of augmentation is introduced
+// (e.g., a new dimension, augmenting existing dimensions or data points, etc.)
+export interface AugmentVisFields {
+  annotations?: Annotation[];
+}

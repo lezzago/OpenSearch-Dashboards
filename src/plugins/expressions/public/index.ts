@@ -132,5 +132,7 @@ export {
   TypeString,
   TypeToString,
   UnmappedTypeStrings,
+  VisConfig,
+  AugmentVisData,
   ExpressionValueRender as Render,
 } from '../common';
