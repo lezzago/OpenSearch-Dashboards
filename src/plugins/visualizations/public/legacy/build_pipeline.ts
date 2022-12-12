@@ -44,8 +44,10 @@ import {
   VisToExpressionAstParams,
   FeatureAnywhereSavedObject,
   FeatureAnywhereFunctionDefinition,
-  AugmentVisFields,
+  ISavedFeatureAnywhere,
+  VisLayers,
 } from '../types';
+import { SavedFeatureAnywhereLoader } from '../saved_feature_anywhere';
 const { isDateHistogramBucketAggConfig } = search.aggs;
 
 interface SchemaConfigParams {
@@ -477,46 +479,36 @@ export const buildPipeline = async (vis: Vis, params: BuildPipelineParams) => {
 };
 
 // returns any feature-anywhere saved objects associated with this vis
-export const getFeatureAnywhereSavedObjs = (
-  visId: string | undefined
-): FeatureAnywhereSavedObject[] => {
-  // for now use a dummy saved obj. in the future, use saved obj apis to
-  // fetch and sort through any relevant feature-anywhere saved objs based on visId arg
-  const savedObjectsFound = [
-    {
-      visId: '0d0b6850-56ee-11ed-9043-0370c51f768c',
-      expressionFnName: 'overlay_anomalies',
-      expressionFnArgs: {
-        detectorId: '7uDr5oMBJSTDLAJPKn3R',
-        // somethingElse: {
-        //   another: 'field',
-        // },
-      },
-    },
-    // {
-    //   expressionFnName: 'overlay_alerts',
-    //   expressionFnArgs: {
-    //     monitorId: 'xyz789',
-    //   },
-    // },
-  ] as FeatureAnywhereSavedObject[];
-
-  return savedObjectsFound.filter((savedObject) => savedObject.visId === visId);
+export const getFeatureAnywhereSavedObjs = async (
+  visId: string | undefined,
+  loader: SavedFeatureAnywhereLoader | undefined
+): Promise<ISavedFeatureAnywhere[]> => {
+  try {
+    const resp = await loader?.findAll();
+    const allSavedObjects = (get(resp, 'hits', []) as any[]) as ISavedFeatureAnywhere[];
+    return allSavedObjects.filter((hit: ISavedFeatureAnywhere) => hit.savedObjectId === visId);
+  } catch (e) {
+    console.log('Unable to search for feature anywhere saved objects: ', e);
+    return [] as ISavedFeatureAnywhere[];
+  }
 };
 
 // parses out an array of feature-anywhere saved object into a pipeline string
 export const buildPipelineFromFeatureAnywhereSavedObjs = (
-  objs: FeatureAnywhereSavedObject[]
+  objs: ISavedFeatureAnywhere[]
 ): string => {
   const featureAnywhereExpressionFns = [] as ExpressionAstFunctionBuilder<
     FeatureAnywhereFunctionDefinition
   >[];
 
-  objs.forEach((obj: FeatureAnywhereSavedObject) => {
+  // TODO: update to handle new data models for
+  // (1) the saved obj
+  // (2) the expression fn I/O
+  objs.forEach((obj: ISavedFeatureAnywhere) => {
     featureAnywhereExpressionFns.push(
       buildExpressionFunction<FeatureAnywhereFunctionDefinition>(
-        obj.expressionFnName,
-        obj.expressionFnArgs
+        obj.augmentExpressionFn.name,
+        obj.augmentExpressionFn.args
       )
     );
   });

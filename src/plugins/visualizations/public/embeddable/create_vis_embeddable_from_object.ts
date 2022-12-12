@@ -40,6 +40,7 @@ import { IContainer, ErrorEmbeddable } from '../../../embeddable/public';
 import { DisabledLabEmbeddable } from './disabled_lab_embeddable';
 import {
   getSavedVisualizationsLoader,
+  getSavedFeatureAnywhereLoader,
   getUISettings,
   getHttp,
   getTimeFilter,
@@ -88,6 +89,9 @@ export const createVisEmbeddableFromObject = (deps: VisualizeEmbeddableFactoryDe
 
     const editable = getCapabilities().visualize.save as boolean;
 
+    // TODO: this may be moved to a standalone plugin
+    const savedFeatureAnywhereLoader = getSavedFeatureAnywhereLoader();
+
     return new VisualizeEmbeddable(
       getTimeFilter(),
       {
@@ -101,6 +105,7 @@ export const createVisEmbeddableFromObject = (deps: VisualizeEmbeddableFactoryDe
       input,
       attributeService,
       savedVisualizationsLoader,
+      savedFeatureAnywhereLoader,
       parent
     );
   } catch (e) {

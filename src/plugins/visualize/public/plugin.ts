@@ -196,6 +196,8 @@ export class VisualizePlugin
           localStorage: new Storage(localStorage),
           navigation: pluginsStart.navigation,
           savedVisualizations: pluginsStart.visualizations.savedVisualizationsLoader,
+          // TODO: this may be moved to a standalone plugin
+          savedFeatureAnywhere: pluginsStart.visualizations.savedFeatureAnywhereLoader,
           share: pluginsStart.share,
           toastNotifications: coreStart.notifications.toasts,
           visualizeCapabilities: coreStart.application.capabilities.visualize,

@@ -38,7 +38,12 @@ import {
   Render,
 } from '../../expressions/public';
 import { VegaVisualizationDependencies } from './plugin';
-import { AugmentVisFields, Annotation } from '../../visualizations/public';
+import {
+  VisLayer,
+  VisLayers,
+  PointInTimeEventsVisLayer,
+  isPointInTimeEventsVisLayer,
+} from '../../visualizations/public';
 import { VegaSpec } from './data_model/types';
 // import { createVegaRequestHandler } from './vega_request_handler';
 // import { VegaInspectorAdapters } from './vega_inspector/index';
@@ -49,7 +54,7 @@ type Input = OpenSearchDashboardsDatatable;
 type Output = Promise<string>;
 
 interface Arguments {
-  augmentVisFields: string | null;
+  visLayers: string | null;
   visParams: string;
   dimensions: string;
 }
@@ -182,31 +187,23 @@ const createSpecFromDatatable = (
  * Adding annotations into the correct x-axis key (the time bucket)
  * based on the table. As of now only annotations are supported
  */
-const augmentTable = (
+const addPointInTimeEventsLayersToTable = (
   datatable: OpenSearchDashboardsDatatable,
-  augmentVisFields: AugmentVisFields
+  visLayers: PointInTimeEventsVisLayer[]
 ): OpenSearchDashboardsDatatable => {
   const augmentedTable = cloneDeep(datatable);
 
   // assuming the first column in the datatable represents the x-axis / the time-related field.
   // need to confirm if that's always the case or not
   const xAxis = datatable.columns[0];
-  const annotations = augmentVisFields.annotations;
 
-  // Uncomment below to test with alert annotations as well
-  // const annotations = get(augmentVisFields, 'annotations', []) as Annotation[];
-  // annotations.push({
-  //   name: 'alert',
-  //   timestamps: [665458100000],
-  // } as Annotation);
-
-  if (annotations !== undefined && !isEmpty(annotations)) {
-    annotations.every((annotation) => {
+  if (visLayers !== undefined && !isEmpty(visLayers)) {
+    visLayers.every((visLayer) => {
       // TODO: how to persist an ID? can we re-use name field?
-      const annotationId = annotation.name + '-annotation-id';
+      const visLayerId = visLayer.name + '-annotation-id';
       augmentedTable.columns.push({
-        id: annotationId,
-        name: annotation.name,
+        id: visLayerId,
+        name: visLayer.name,
       });
 
       // special case: no rows
@@ -219,46 +216,56 @@ const augmentTable = (
       if (augmentedTable.rows.length === 1) {
         augmentedTable.rows[0] = {
           ...augmentedTable.rows[0],
-          annotationId: annotation.timestamps.length,
+          visLayerId: visLayer.events.length,
         };
         return false;
       }
 
       // Bin the timestamps to the closest x-axis key, adding
-      // an entry for this annotation ID.
+      // an entry for this vis layer ID.
       let rowIndex = 0;
-      const sortedTimestamps = annotation.timestamps.sort((n1, n2) => n1 - n2);
-      sortedTimestamps.forEach((timestamp) => {
-        while (rowIndex < augmentedTable.rows.length - 1) {
-          const smallerVal = augmentedTable.rows[rowIndex][xAxis.id] as number;
-          const higherVal = augmentedTable.rows[rowIndex + 1][xAxis.id] as number;
-          let rowIndexToInsert;
+      const sortedTimestamps = visLayer.events
+        .map((event) => event.timestamp)
+        .sort((n1, n2) => n1 - n2);
 
-          // timestamp is on the left bounds of the chart
-          if (timestamp <= smallerVal) {
-            rowIndexToInsert = rowIndex;
+      if (sortedTimestamps.length > 0) {
+        sortedTimestamps.forEach((timestamp) => {
+          while (rowIndex < augmentedTable.rows.length - 1) {
+            const smallerVal = augmentedTable.rows[rowIndex][xAxis.id] as number;
+            const higherVal = augmentedTable.rows[rowIndex + 1][xAxis.id] as number;
+            let rowIndexToInsert;
 
-            // timestamp is in between the right 2 buckets. now need to determine which one it is closer to
-          } else if (timestamp <= higherVal) {
-            const smallerValDiff = Math.abs(timestamp - smallerVal);
-            const higherValDiff = Math.abs(timestamp - higherVal);
-            rowIndexToInsert = smallerValDiff <= higherValDiff ? rowIndex : rowIndex + 1;
+            // timestamp is on the left bounds of the chart
+            if (timestamp <= smallerVal) {
+              rowIndexToInsert = rowIndex;
+
+              // timestamp is in between the right 2 buckets. now need to determine which one it is closer to
+            } else if (timestamp <= higherVal) {
+              const smallerValDiff = Math.abs(timestamp - smallerVal);
+              const higherValDiff = Math.abs(timestamp - higherVal);
+              rowIndexToInsert = smallerValDiff <= higherValDiff ? rowIndex : rowIndex + 1;
+            }
+
+            // timestamp is on the right bounds of the chart
+            else if (rowIndex + 1 === augmentedTable.rows.length - 1) {
+              rowIndexToInsert = rowIndex + 1;
+            } else {
+              rowIndex += 1;
+              continue;
+            }
+
+            // inserting the value. increment if the mapping/property already exists
+            augmentedTable.rows[rowIndexToInsert][visLayerId] =
+              (get(augmentedTable.rows[rowIndexToInsert], visLayerId, 0) as number) + 1;
+            break;
           }
-
-          // timestamp is on the right bounds of the chart
-          else if (rowIndex + 1 === augmentedTable.rows.length - 1) {
-            rowIndexToInsert = rowIndex + 1;
-          } else {
-            rowIndex += 1;
-            continue;
-          }
-
-          // inserting the value. increment if the mapping/property already exists
-          augmentedTable.rows[rowIndexToInsert][annotationId] =
-            (get(augmentedTable.rows[rowIndexToInsert], annotationId, 0) as number) + 1;
-          break;
-        }
-      });
+        });
+      } else {
+        // if no data found, remove the column to prevent vega-lite errors
+        // TODO: make sure this is done on the original dataset too, not just
+        // these vis-layer-related ones
+        augmentedTable.columns.pop();
+      }
       // iterate to the next annotation
       return true;
     });
@@ -267,10 +274,10 @@ const augmentTable = (
   return augmentedTable;
 };
 
-const augmentSpec = (
+const addPointInTimeEventsLayersToSpec = (
   datatable: OpenSearchDashboardsDatatable,
   spec: object,
-  augmentVisFields: AugmentVisFields
+  visLayers: VisLayers
 ): object => {
   const newSpec = cloneDeep(spec) as any;
 
@@ -316,7 +323,7 @@ export const createVegaSpecFn = (
     defaultMessage: 'Construct vega spec',
   }),
   args: {
-    augmentVisFields: {
+    visLayers: {
       types: ['string', 'null'],
       default: '',
       help: '',
@@ -335,13 +342,20 @@ export const createVegaSpecFn = (
   async fn(input, args, context) {
     let table = cloneDeep(input);
 
-    const augmentVisFields = args.augmentVisFields
-      ? (JSON.parse(args.augmentVisFields) as AugmentVisFields)
-      : {};
+    const allVisLayers = (args.visLayers
+      ? (JSON.parse(args.visLayers) as VisLayers)
+      : []) as VisLayers;
 
-    // if we have augmented fields, update the source datatable first
-    if (!isEmpty(augmentVisFields)) {
-      table = augmentTable(table, augmentVisFields);
+    // currently only supporting point-in-time events vis layers.
+    // future vis layer types will need to be separated here and processed
+    // differently.
+    const pointInTimeEventsVisLayers = allVisLayers.filter((visLayer) =>
+      isPointInTimeEventsVisLayer(visLayer)
+    ) as PointInTimeEventsVisLayer[];
+
+    // if we have point-in-time events vis layers, update the source datatable first
+    if (!isEmpty(pointInTimeEventsVisLayers)) {
+      table = addPointInTimeEventsLayersToTable(table, pointInTimeEventsVisLayers);
     }
 
     console.log('augmented table: ', table);
@@ -350,9 +364,9 @@ export const createVegaSpecFn = (
     // creating initial spec from table
     let spec = createSpecFromDatatable(table, args.visParams, args.dimensions);
 
-    // if we have augmented fields, update the spec
-    if (!isEmpty(augmentVisFields)) {
-      spec = augmentSpec(table, spec, augmentVisFields);
+    // if we have point-in-time events vis layers, update the spec
+    if (!isEmpty(pointInTimeEventsVisLayers)) {
+      spec = addPointInTimeEventsLayersToSpec(table, spec, pointInTimeEventsVisLayers);
     }
 
     // console.log('spec as string: ', JSON.stringify(spec));

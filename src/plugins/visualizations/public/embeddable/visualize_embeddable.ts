@@ -54,7 +54,7 @@ import {
   IExpressionLoaderParams,
   ExpressionsStart,
   ExpressionRenderError,
-  AugmentVisData,
+  ExprVisLayers,
 } from '../../../expressions/public';
 import {
   buildPipeline,
@@ -69,7 +69,8 @@ import { TriggerId } from '../../../ui_actions/public';
 import { SavedObjectAttributes } from '../../../../core/types';
 import { AttributeService } from '../../../dashboard/public';
 import { SavedVisualizationsLoader } from '../saved_visualizations';
-import { VisSavedObject, VisParams, AugmentVisFields } from '../types';
+import { SavedFeatureAnywhereLoader } from '../saved_feature_anywhere';
+import { VisSavedObject, VisParams, VisLayers } from '../types';
 
 const getKeys = <T extends {}>(o: T): Array<keyof T> => Object.keys(o) as Array<keyof T>;
 
@@ -132,6 +133,7 @@ export class VisualizeEmbeddable
     VisualizeByReferenceInput
   >;
   private savedVisualizationsLoader?: SavedVisualizationsLoader;
+  private savedFeatureAnywhereLoader?: SavedFeatureAnywhereLoader;
 
   constructor(
     timefilter: TimefilterContract,
@@ -143,6 +145,8 @@ export class VisualizeEmbeddable
       VisualizeByReferenceInput
     >,
     savedVisualizationsLoader?: SavedVisualizationsLoader,
+    // TODO: this may be moved to a standalone plugin
+    savedFeatureAnywhereLoader?: SavedFeatureAnywhereLoader,
     parent?: IContainer
   ) {
     super(
@@ -165,6 +169,7 @@ export class VisualizeEmbeddable
     this.vis.uiState.on('reload', this.reload);
     this.attributeService = attributeService;
     this.savedVisualizationsLoader = savedVisualizationsLoader;
+    this.savedFeatureAnywhereLoader = savedFeatureAnywhereLoader;
 
     this.autoRefreshFetchSubscription = timefilter
       .getAutoRefreshFetch$()
@@ -399,31 +404,35 @@ export class VisualizeEmbeddable
     this.abortController = new AbortController();
     const abortController = this.abortController;
 
-    // Collect any augment vis data from plugin expr fns (e.g., anomalies/alerts)
-    let augmentVisData = {} as AugmentVisData;
+    // Collect any vis layers from plugin expr fns (e.g., anomalies/alerts)
+    // by fetching all feature anywhere saved objs that match the vis ID
+    let exprVisLayers = {} as ExprVisLayers;
     if (this.vis.params.type === 'line') {
-      const featureAnywhereSavedObjs = getFeatureAnywhereSavedObjs(this.vis.id);
+      const featureAnywhereSavedObjs = await getFeatureAnywhereSavedObjs(
+        this.vis.id,
+        this.savedFeatureAnywhereLoader
+      );
       if (!isEmpty(featureAnywhereSavedObjs) && this.handler && !abortController.signal.aborted) {
-        const augmentVisConfigPipeline = buildPipelineFromFeatureAnywhereSavedObjs(
+        const visLayersPipeline = buildPipelineFromFeatureAnywhereSavedObjs(
           featureAnywhereSavedObjs
         );
-        const augmentVisConfigPipelineInput = {
-          type: 'augment_vis_data',
-          data: {} as AugmentVisFields,
+        const visLayersPipelineInput = {
+          type: 'vis_layers',
+          layers: [] as VisLayers,
         };
-        augmentVisData = (await this.handler.run(
-          augmentVisConfigPipeline,
-          augmentVisConfigPipelineInput,
+        exprVisLayers = (await this.handler.run(
+          visLayersPipeline,
+          visLayersPipelineInput,
           expressionParams as Record<string, unknown>
-        )) as AugmentVisData;
+        )) as ExprVisLayers;
       }
     }
-    // Add the optional arg to pass in any augment vis data
+    // Add the optional arg to pass in any vis layers
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
       timeRange: this.timeRange,
       abortSignal: this.abortController!.signal,
-      augmentVisFields: !isEmpty(augmentVisData) ? augmentVisData.data : ({} as AugmentVisFields),
+      visLayers: !isEmpty(exprVisLayers) ? exprVisLayers.layers : ([] as VisLayers),
     });
 
     if (this.handler && !abortController.signal.aborted) {

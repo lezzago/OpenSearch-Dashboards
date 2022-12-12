@@ -45,7 +45,7 @@ import { shape } from './shape';
 import { string } from './string';
 import { style } from './style';
 import { visConfig } from './vis_config';
-import { augmentVisData } from './augment_vis_data';
+import { visLayers } from './vis_layers';
 import { AnyExpressionTypeDefinition } from '../types';
 
 export const typeSpecs: AnyExpressionTypeDefinition[] = [
@@ -66,7 +66,7 @@ export const typeSpecs: AnyExpressionTypeDefinition[] = [
   string,
   style,
   visConfig,
-  augmentVisData,
+  visLayers,
 ];
 
 export * from './boolean';
@@ -86,4 +86,4 @@ export * from './shape';
 export * from './string';
 export * from './style';
 export * from './vis_config';
-export * from './augment_vis_data';
+export * from './vis_layers';

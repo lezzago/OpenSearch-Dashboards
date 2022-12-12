@@ -119,6 +119,8 @@ export interface VisualizeServices extends CoreStart {
   visualizations: VisualizationsStart;
   savedObjectsPublic: SavedObjectsStart;
   savedVisualizations: VisualizationsStart['savedVisualizationsLoader'];
+  // TODO: this may be moved to a standalone plugin
+  savedFeatureAnywhere: VisualizationsStart['savedFeatureAnywhereLoader'];
   setActiveUrl: (newUrl: string) => void;
   createVisEmbeddableFromObject: VisualizationsStart['__LEGACY']['createVisEmbeddableFromObject'];
   restorePreviousUrl: () => void;

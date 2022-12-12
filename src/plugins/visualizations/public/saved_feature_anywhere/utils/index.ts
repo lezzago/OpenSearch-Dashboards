@@ -28,6 +28,4 @@
  * under the License.
  */
 
-export { visualizationSavedObjectType } from './visualization';
-// TODO: this may move to a standalone plugin
-export { featureAnywhereSavedObjectType } from './feature_anywhere';
+export * from './helpers';

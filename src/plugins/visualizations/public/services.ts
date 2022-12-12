@@ -106,3 +106,8 @@ export const [getChrome, setChrome] = createGetterSetter<ChromeStart>('Chrome');
 export const [getSavedSearchLoader, setSavedSearchLoader] = createGetterSetter<SavedObjectLoader>(
   'savedSearchLoader'
 );
+
+// TODO: may move to a standalone plugin
+export const [getSavedFeatureAnywhereLoader, setSavedFeatureAnywhereLoader] = createGetterSetter<
+  SavedObjectLoader
+>('savedFeatureAnywhereLoader');

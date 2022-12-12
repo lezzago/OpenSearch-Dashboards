@@ -28,6 +28,33 @@
  * under the License.
  */
 
-export { visualizationSavedObjectType } from './visualization';
+import { SavedObjectsType } from 'opensearch-dashboards/server';
+
 // TODO: this may move to a standalone plugin
-export { featureAnywhereSavedObjectType } from './feature_anywhere';
+export const featureAnywhereSavedObjectType: SavedObjectsType = {
+  name: 'feature-anywhere',
+  hidden: false,
+  namespaceType: 'single',
+  mappings: {
+    properties: {
+      description: { type: 'text' },
+      pluginResourceId: { type: 'text' },
+      savedObjectName: { type: 'keyword', index: false, doc_values: false },
+      augmentExpressionFn: {
+        properties: {
+          // for now we may just support some fn type like 'VisLayers',
+          // which can support all of the ways to augment the vis saved obj.
+          // but future fns may be added, such as ones to augment the dashboard,
+          // or other new saved objs in the future
+          type: { type: 'text' },
+          // name of the plugin's registered expr fn
+          name: { type: 'text' },
+          // keeping generic to not limit what users may pass as args to their fns
+          // users may not have this field at all, if no args are needed
+          args: { type: 'object', dynamic: true },
+        },
+      },
+      version: { type: 'integer' },
+    },
+  },
+};

@@ -28,6 +28,18 @@
  * under the License.
  */
 
-export { visualizationSavedObjectType } from './visualization';
-// TODO: this may move to a standalone plugin
-export { featureAnywhereSavedObjectType } from './feature_anywhere';
+import _ from 'lodash';
+import { getSavedFeatureAnywhereLoader } from '../../services';
+import { ISavedFeatureAnywhere } from '../../../public';
+import { FeatureAnywhereSavedObject } from '../../types';
+
+/**
+ * Create a feature anywhere saved object given an object that
+ * implements the ISavedFeatureAnywhere interface
+ */
+export const createFeatureAnywhereSavedObject = async (
+  featureAnywhere: ISavedFeatureAnywhere
+): Promise<any> => {
+  const loader = getSavedFeatureAnywhereLoader();
+  return await loader.get((featureAnywhere as any) as Record<string, unknown>);
+};

@@ -86,7 +86,7 @@ export interface VisToExpressionAstParams {
   timefilter: TimefilterContract;
   timeRange?: any;
   abortSignal?: AbortSignal;
-  augmentVisFields?: AugmentVisFields;
+  visLayers?: VisLayers;
 }
 
 export type VisToExpressionAst<TVisParams = VisParams> = (
@@ -94,28 +94,87 @@ export type VisToExpressionAst<TVisParams = VisParams> = (
   params: VisToExpressionAstParams
 ) => ExpressionAstExpression;
 
-export type FeatureAnywhereSavedObject = {
-  expressionFnName: string;
-  expressionFnArgs: { [x: string]: any };
-  // visId may be removed. using temporarily to associate a
-  // feature anywhere saved object to a particular vis
-  visId?: string;
+//##################################################################################
+/**
+ * Everything below here is related to the feature anywhere projects.
+ * Creating interfaces & types for the vis layer data models & saved objects.
+ */
+//##################################################################################
+
+/**
+ * Vis layering data models
+ */
+export interface VisLayer {
+  name: string;
+}
+
+export type VisLayers = VisLayer[];
+
+export interface PointInTimeEvent {
+  timestamp: number;
+  // this may be set at layer-level rather than event-level
+  metadata: {};
+}
+
+export interface PointInTimeEventsVisLayer extends VisLayer {
+  events: PointInTimeEvent[];
+  format: string;
+  //format: PointInTimeEventFormat;
+}
+
+// used to determine what vis layer's interface is being implemented
+export const isPointInTimeEventsVisLayer = (obj: any) => {
+  return 'events' in obj;
 };
+
+/**
+ * Saved object data models
+ */
+export interface ISavedFeatureAnywhere {
+  id?: string;
+  description?: string;
+  pluginResourceId: string;
+  savedObjectName?: string;
+  savedObjectType?: string;
+  savedObjectId?: string;
+  augmentExpressionFn: AugmentExpressionFn;
+  version?: number;
+}
+
+// TODO: possibly rename to VisLayerExpressionFn?
+export interface AugmentExpressionFn {
+  // string may be ok - need to confirm
+  //type: VisLayer;
+  type: string;
+  name: string;
+  // plugin expression fns can freely set custom arguments
+  args: { [key: string]: any };
+}
+
+export interface FeatureAnywhereSavedObject extends SavedObject, ISavedFeatureAnywhere {}
+
+export interface SerializedFeatureAnywhere {
+  id?: string;
+  description?: string;
+  pluginResourceId: string;
+  savedObjectName?: string;
+  savedObjectType?: string;
+  savedObjectId?: string;
+  augmentExpressionFn: string;
+  version?: number;
+}
+
+/**
+ * Expression fn data models
+ */
+// the I/O of the expression fns (used in below fn definition)
+export interface FeatureAnywhereResponseValue {
+  visLayers: object;
+}
 
 export type FeatureAnywhereFunctionDefinition = ExpressionFunctionDefinition<
   string,
-  VisConfig,
+  FeatureAnywhereResponseValue,
   any,
-  Promise<VisConfig>
+  Promise<FeatureAnywhereResponseValue>
 >;
-
-export type Annotation = {
-  name: string;
-  timestamps: number[];
-};
-
-// We keep a generic interface in case of further types of augmentation is introduced
-// (e.g., a new dimension, augmenting existing dimensions or data points, etc.)
-export interface AugmentVisFields {
-  annotations?: Annotation[];
-}

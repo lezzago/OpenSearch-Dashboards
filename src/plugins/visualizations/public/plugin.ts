@@ -54,6 +54,7 @@ import {
   setExpressions,
   setUiActions,
   setSavedVisualizationsLoader,
+  setSavedFeatureAnywhereLoader,
   setTimeFilter,
   setAggs,
   setChrome,
@@ -92,6 +93,10 @@ import {
 } from './saved_visualizations/_saved_vis';
 import { createSavedSearchesLoader } from '../../discover/public';
 import { DashboardStart } from '../../dashboard/public';
+import {
+  createSavedFeatureAnywhereLoader,
+  SavedFeatureAnywhereLoader,
+} from './saved_feature_anywhere';
 
 /**
  * Interface for this plugin's returned setup/start contracts.
@@ -103,6 +108,8 @@ export type VisualizationsSetup = TypesSetup;
 
 export interface VisualizationsStart extends TypesStart {
   savedVisualizationsLoader: SavedVisualizationsLoader;
+  // TODO: this may be moved to a standalone plugin
+  savedFeatureAnywhereLoader: SavedFeatureAnywhereLoader;
   createVis: (visType: string, visState: SerializedVis) => Promise<Vis>;
   convertToSerializedVis: typeof convertToSerializedVis;
   convertFromSerializedVis: typeof convertFromSerializedVis;
@@ -210,6 +217,17 @@ export class VisualizationsPlugin
       overlays: core.overlays,
     });
     setSavedSearchLoader(savedSearchLoader);
+
+    // TODO: may move to a standalone plugin. adding to visualizations for now
+    const savedFeatureAnywhereLoader = createSavedFeatureAnywhereLoader({
+      savedObjectsClient: core.savedObjects.client,
+      indexPatterns: data.indexPatterns,
+      search: data.search,
+      chrome: core.chrome,
+      overlays: core.overlays,
+    });
+    setSavedFeatureAnywhereLoader(savedFeatureAnywhereLoader);
+
     return {
       ...types,
       showNewVisModal,
@@ -226,6 +244,7 @@ export class VisualizationsPlugin
       convertToSerializedVis,
       convertFromSerializedVis,
       savedVisualizationsLoader,
+      savedFeatureAnywhereLoader,
       __LEGACY: {
         createVisEmbeddableFromObject: createVisEmbeddableFromObject({
           start: this.getStartServicesOrDie!,

@@ -31,27 +31,25 @@
  */
 
 import { ExpressionTypeDefinition } from '../types';
-import { AugmentVisFields } from '../../../../visualizations/public';
+import { VisLayers } from '../../../../visualizations/public';
 
-const name = 'augment_vis_data';
+const name = 'vis_layers';
 
-export interface AugmentVisData {
+export interface ExprVisLayers {
   type: typeof name;
-  data: AugmentVisFields;
+  layers: VisLayers;
 }
 
 // the 'from' field specifies that if null is passed as the value,
-// default to setting it as AugmentVisData with an empty annotations array
-export const augmentVisData: ExpressionTypeDefinition<typeof name, AugmentVisData> = {
+// default to setting it as ExprVisLayers with an empty layers array
+export const visLayers: ExpressionTypeDefinition<typeof name, ExprVisLayers> = {
   name,
   from: {
     null: () => {
       return {
         type: name,
-        data: {
-          annotations: [],
-        },
-      };
+        layers: [] as VisLayers,
+      } as ExprVisLayers;
     },
   },
 };

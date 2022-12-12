@@ -51,13 +51,13 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
     }
   );
 
-  console.log('augementation is: ' + JSON.stringify(params.augmentVisFields));
-  console.log('augementation is: ' + (Object.keys(params.augmentVisFields).length === 0));
+  console.log('augementation is: ' + JSON.stringify(params.visLayers));
+  console.log('augementation is: ' + (Object.keys(params.visLayers).length === 0));
   // console.log(deps);
   console.log(params);
 
   // Change the value 0 to another value like 2 to force the vega implementation for line graph
-  if (Object.keys(params.augmentVisFields).length === 0) {
+  if (Object.keys(params.visLayers).length === 0) {
     // This wont work but is needed so then it will default to the original vis lib renderer
     const dimensions = await buildVislibDimensions(vis, params);
     const visConfig = { ...vis.params, dimensions };
@@ -72,7 +72,7 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
 
     // adding the new expr fn here that takes the datatable and converts to a vega spec
     const vegaSpecFn = buildExpressionFunction<VegaSpecExpressionFunctionDefinition>('vega_spec', {
-      augmentVisFields: JSON.stringify(params.augmentVisFields),
+      visLayers: JSON.stringify(params.visLayers),
       visParams: JSON.stringify(vis.params),
       dimensions: JSON.stringify(dimensions),
     });

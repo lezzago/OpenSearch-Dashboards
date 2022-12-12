@@ -45,7 +45,7 @@ import {
   VISUALIZE_DISABLE_BUCKET_AGG_SETTING,
 } from '../common/constants';
 
-import { visualizationSavedObjectType } from './saved_objects';
+import { visualizationSavedObjectType, featureAnywhereSavedObjectType } from './saved_objects';
 
 import { VisualizationsPluginSetup, VisualizationsPluginStart } from './types';
 import { registerVisualizationsCollector } from './usage_collector';
@@ -64,6 +64,8 @@ export class VisualizationsPlugin
     this.logger.debug('visualizations: Setup');
 
     core.savedObjects.registerType(visualizationSavedObjectType);
+    // TODO: this may move to a standalone plugin
+    core.savedObjects.registerType(featureAnywhereSavedObjectType);
 
     core.uiSettings.register({
       [VISUALIZE_ENABLE_LABS_SETTING]: {
