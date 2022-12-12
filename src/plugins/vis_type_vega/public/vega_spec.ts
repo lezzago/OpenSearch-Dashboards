@@ -30,6 +30,7 @@
 
 import { get, isEmpty, cloneDeep } from 'lodash';
 import { i18n } from '@osd/i18n';
+import { format } from 'd3';
 import {
   ExecutionContext,
   ExpressionFunctionDefinition,
@@ -49,6 +50,8 @@ type Output = Promise<string>;
 
 interface Arguments {
   augmentVisFields: string | null;
+  visParams: string;
+  dimensions: string;
 }
 
 export type VegaSpecExpressionFunctionDefinition = ExpressionFunctionDefinition<
@@ -56,7 +59,7 @@ export type VegaSpecExpressionFunctionDefinition = ExpressionFunctionDefinition<
   Input,
   Arguments,
   Output
-  //ExecutionContext<unknown, VegaInspectorAdapters>
+  // ExecutionContext<unknown, VegaInspectorAdapters>
 >;
 
 /**
@@ -67,17 +70,39 @@ export type VegaSpecExpressionFunctionDefinition = ExpressionFunctionDefinition<
  * We will need to do similar transformations either within here, or somewhere else in
  * the render workflow.
  */
-const createSpecFromDatatable = (datatable: OpenSearchDashboardsDatatable): object => {
+/*
+TODO: Support legend orientation location, make the legend better to look the same
+ */
+const createSpecFromDatatable = (
+  datatable: OpenSearchDashboardsDatatable,
+  visParams: string,
+  dimensionsString: string
+): object => {
   // TODO: we can try to use VegaSpec type but it is currently very outdated, where many
   // of the fields and sub-fields don't have other optional params that we want for customizing.
   // For now, we make this more loosely-typed by just specifying it as a generic object.
-  let spec = {} as any;
-  //let spec = {} as VegaSpec;
+  const spec = {} as any;
+
+  console.log(JSON.parse(visParams));
+
+  const xAxis = datatable.columns[0];
+
+  const parseParams = JSON.parse(visParams);
+  const dimensions = JSON.parse(dimensionsString);
+
+  // Get time range for the data in case there is only data for a small range so it will show the full time range
+  const startTime = {};
+  startTime[xAxis.id.toString()] = new Date(dimensions.x.params.bounds.min).valueOf();
+  const endTime = {};
+  endTime[xAxis.id.toString()] = new Date(dimensions.x.params.bounds.max).valueOf();
+  const updatedTable = datatable.rows.concat([startTime, endTime]);
+
+  const legendPosition = parseParams.legendPosition;
 
   // TODO: update this to v5 when available
   spec.$schema = 'https://vega.github.io/schema/vega-lite/v4.json';
   spec.data = {
-    values: datatable.rows,
+    values: updatedTable,
   };
   spec.config = {
     view: {
@@ -94,12 +119,19 @@ const createSpecFromDatatable = (datatable: OpenSearchDashboardsDatatable): obje
     rule: {
       color: 'red',
     },
+    // legend: { disable: true },
   };
 
   // assuming the first column in the datatable represents the x-axis / the time-related field.
   // need to confirm if that's always the case or not
   spec.layer = [] as any[];
-  const xAxis = datatable.columns[0];
+
+  let yTitle: string;
+  // The value axes are the different axes added by the visBuilder
+  if (parseParams.valueAxes != null && parseParams.valueAxes[0].title != null) {
+    yTitle = parseParams.valueAxes[0].title.text;
+  }
+
   datatable.columns.forEach((column, index) => {
     if (index !== 0) {
       spec.layer.push({
@@ -109,24 +141,39 @@ const createSpecFromDatatable = (datatable: OpenSearchDashboardsDatatable): obje
             axis: {
               title: xAxis.name,
               grid: false,
-              ticks: false,
-              labels: false,
             },
             field: xAxis.id,
             type: 'temporal',
           },
           y: {
             axis: {
-              title: column.name,
+              title: yTitle || column.name,
               grid: false,
             },
             field: column.id,
             type: 'quantitative',
           },
+          color: {
+            datum: column.name,
+          },
         },
       });
     }
   });
+
+  if (parseParams.thresholdLine.show as boolean) {
+    spec.layer.push({
+      mark: {
+        type: 'rule',
+        color: parseParams.thresholdLine.color,
+      },
+      encoding: {
+        y: {
+          datum: parseParams.thresholdLine.value,
+        },
+      },
+    });
+  }
 
   return spec;
 };
@@ -139,7 +186,7 @@ const augmentTable = (
   datatable: OpenSearchDashboardsDatatable,
   augmentVisFields: AugmentVisFields
 ): OpenSearchDashboardsDatatable => {
-  let augmentedTable = cloneDeep(datatable);
+  const augmentedTable = cloneDeep(datatable);
 
   // assuming the first column in the datatable represents the x-axis / the time-related field.
   // need to confirm if that's always the case or not
@@ -163,13 +210,13 @@ const augmentTable = (
       });
 
       // special case: no rows
-      if (augmentedTable.rows.length == 0) {
+      if (augmentedTable.rows.length === 0) {
         return false;
       }
 
       // special case: only one row - put all timestamps for this annotation
       // in the one bucket and iterate to the next one
-      if (augmentedTable.rows.length == 1) {
+      if (augmentedTable.rows.length === 1) {
         augmentedTable.rows[0] = {
           ...augmentedTable.rows[0],
           annotationId: annotation.timestamps.length,
@@ -199,7 +246,7 @@ const augmentTable = (
           }
 
           // timestamp is on the right bounds of the chart
-          else if (rowIndex + 1 == augmentedTable.rows.length - 1) {
+          else if (rowIndex + 1 === augmentedTable.rows.length - 1) {
             rowIndexToInsert = rowIndex + 1;
           } else {
             rowIndex += 1;
@@ -225,7 +272,7 @@ const augmentSpec = (
   spec: object,
   augmentVisFields: AugmentVisFields
 ): object => {
-  let newSpec = cloneDeep(spec) as any;
+  const newSpec = cloneDeep(spec) as any;
 
   /**
    * It is expected at this point that all of the data is in one layer
@@ -274,6 +321,16 @@ export const createVegaSpecFn = (
       default: '',
       help: '',
     },
+    visParams: {
+      types: ['string'],
+      default: '""',
+      help: '',
+    },
+    dimensions: {
+      types: ['string'],
+      default: '""',
+      help: '',
+    },
   },
   async fn(input, args, context) {
     let table = cloneDeep(input);
@@ -288,16 +345,17 @@ export const createVegaSpecFn = (
     }
 
     console.log('augmented table: ', table);
+    // console.log('args: ', JSON.parse(args.visParams));
 
     // creating initial spec from table
-    let spec = createSpecFromDatatable(table);
+    let spec = createSpecFromDatatable(table, args.visParams, args.dimensions);
 
     // if we have augmented fields, update the spec
     if (!isEmpty(augmentVisFields)) {
       spec = augmentSpec(table, spec, augmentVisFields);
     }
 
-    //console.log('spec as string: ', JSON.stringify(spec));
+    // console.log('spec as string: ', JSON.stringify(spec));
 
     return JSON.stringify(spec);
   },

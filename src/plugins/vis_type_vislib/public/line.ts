@@ -46,14 +46,13 @@ import {
   getConfigCollections,
 } from './utils/collections';
 import { getAreaOptionTabs, countLabel } from './utils/common_config';
-// import { createVislibVisController } from './vis_controller';
-// import { VisTypeVislibDependencies } from './plugin';
+import { VisTypeVislibDependencies } from './plugin';
 import { Rotates } from '../../charts/public';
 import { VIS_EVENT_TO_TRIGGER } from '../../visualizations/public';
 import { toExpressionAst } from './line_to_expression';
-import { VegaVisualizationDependencies } from '../../vis_type_vega/public';
+import { createVislibVisController } from './vis_controller';
 
-export const createLineVisTypeDefinition = (deps: VegaVisualizationDependencies) => ({
+export const createLineVisTypeDefinition = (deps: VisTypeVislibDependencies) => ({
   name: 'line',
   title: i18n.translate('visTypeVislib.line.lineTitle', { defaultMessage: 'Line' }),
   icon: 'visLine',
@@ -61,6 +60,7 @@ export const createLineVisTypeDefinition = (deps: VegaVisualizationDependencies)
     defaultMessage: 'Emphasize trends',
   }),
   toExpressionAst,
+  visualization: createVislibVisController(deps),
   getSupportedTriggers: () => {
     return [VIS_EVENT_TO_TRIGGER.filter, VIS_EVENT_TO_TRIGGER.brush];
   },
