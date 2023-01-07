@@ -29,8 +29,6 @@
  */
 
 import { calculatePopoverPosition } from '@elastic/eui';
-import { formatValue as createTooltipContent } from 'vega-tooltip';
-import _ from 'lodash';
 
 // Some of this code was adapted from https://github.com/vega/vega-tooltip
 
@@ -76,6 +74,7 @@ export class TooltipHandler {
       return;
     }
 
+    // creating element & adding id & class attributes to it so it renders in the euiToolTip styling
     const el = document.createElement('div');
     el.setAttribute('id', tooltipId);
     ['vgaVis__tooltip', 'euiToolTipPopover', 'euiToolTip', `euiToolTip--${this.position}`].forEach(
@@ -87,8 +86,10 @@ export class TooltipHandler {
     // Sanitized HTML is created by the tooltip library,
     // with a large number of tests, hence suppressing eslint here.
     // eslint-disable-next-line no-unsanitized/property
-    el.innerHTML = createTooltipContent(value, _.escape, 2);
+    // el.innerHTML = createTooltipContent(value, _.escape, 2);
 
+    /* eslint-disable */
+    el.innerHTML = this.createTooltipHtml(value);
     // add to DOM to calculate tooltip size
     document.body.appendChild(el);
 
@@ -115,6 +116,13 @@ export class TooltipHandler {
     );
 
     el.setAttribute('style', `top: ${pos.top}px; left: ${pos.left}px`);
+  }
+
+  // TODO: This is where the custom tooltip will be handled - see here for details:
+  // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3317
+  /* eslint-disable */
+  createTooltipHtml(value) {
+    return '<p>some custom tooltip<p>';
   }
 
   hideTooltip() {

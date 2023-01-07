@@ -72,8 +72,15 @@ import {
   getAugmentVisSavedObjs,
   buildPipelineFromAugmentVisSavedObjs,
   getAnyErrors,
+  VisLayerErrorTypes,
 } from '../../../vis_augmenter/public';
 import { VisSavedObject } from '../types';
+import {
+  PointInTimeEventsVisLayer,
+  VisLayer,
+  VisLayerTypes,
+  VisAugmenterEmbeddableConfig,
+} from '../../../vis_augmenter/public';
 
 const getKeys = <T extends {}>(o: T): Array<keyof T> => Object.keys(o) as Array<keyof T>;
 
@@ -92,6 +99,7 @@ export interface VisualizeInput extends EmbeddableInput {
   };
   savedVis?: SerializedVis;
   table?: unknown;
+  visAugmenterConfig?: VisAugmenterEmbeddableConfig;
 }
 
 export interface VisualizeOutput extends EmbeddableOutput {
@@ -123,7 +131,7 @@ export class VisualizeEmbeddable
   private visCustomizations?: Pick<VisualizeInput, 'vis' | 'table'>;
   private subscriptions: Subscription[] = [];
   private expression: string = '';
-  private vis: Vis;
+  public vis: Vis;
   private domNode: any;
   public readonly type = VISUALIZE_EMBEDDABLE_TYPE;
   private autoRefreshFetchSubscription: Subscription;
@@ -137,6 +145,8 @@ export class VisualizeEmbeddable
   >;
   private savedVisualizationsLoader?: SavedVisualizationsLoader;
   private savedAugmentVisLoader?: SavedAugmentVisLoader;
+  public visLayers?: VisLayer[];
+  private visAugmenterConfig?: VisAugmenterEmbeddableConfig;
 
   constructor(
     timefilter: TimefilterContract,
@@ -172,6 +182,7 @@ export class VisualizeEmbeddable
     this.attributeService = attributeService;
     this.savedVisualizationsLoader = savedVisualizationsLoader;
     this.savedAugmentVisLoader = savedAugmentVisLoader;
+    this.visAugmenterConfig = initialInput.visAugmenterConfig;
     this.autoRefreshFetchSubscription = timefilter
       .getAutoRefreshFetch$()
       .subscribe(this.updateHandler.bind(this));
@@ -405,13 +416,180 @@ export class VisualizeEmbeddable
     this.abortController = new AbortController();
     const abortController = this.abortController;
 
-    const visLayers = await this.fetchVisLayers(expressionParams, abortController);
+    // TODO: remove hardcoded vislayers when finished testing
+    // const visLayers = await this.fetchVisLayers(expressionParams, abortController);
+    const visLayers = [
+      {
+        originPlugin: 'anomalyDetectionDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Anomaly Detectors',
+          id: 'detector-a-id',
+          name: 'Detector A',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1679781303000,
+            metadata: {
+              pluginResourceId: 'detector-a-id',
+            },
+          },
+          {
+            timestamp: 1680126903000,
+            metadata: {
+              pluginResourceId: 'detector-a-id',
+            },
+          },
+          {
+            timestamp: 1680299703000,
+            metadata: {
+              pluginResourceId: 'detector-a-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'anomalyDetectionDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Anomaly Detectors',
+          id: 'detector-b-id',
+          name: 'Detector B',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [],
+        error: {
+          type: VisLayerErrorTypes.FETCH_FAILURE,
+          message: 'Failed to fetch events',
+        },
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-a-id',
+          name: 'Monitor A',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1679781303000,
+            metadata: {
+              pluginResourceId: 'monitor-a-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-b-id',
+          name: 'Monitor B',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1680126903000,
+            metadata: {
+              pluginResourceId: 'monitor-b-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-c-id',
+          name: 'Monitor C',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1679781303000,
+            metadata: {
+              pluginResourceId: 'monitor-c-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-d-id',
+          name: 'Monitor D',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1680299703000,
+            metadata: {
+              pluginResourceId: 'monitor-d-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-e-id',
+          name: 'Monitor E',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1680299703000,
+            metadata: {
+              pluginResourceId: 'monitor-e-id',
+            },
+          },
+        ],
+      },
+      {
+        originPlugin: 'alertingDashboards',
+        type: VisLayerTypes.PointInTimeEvents,
+        pluginResource: {
+          type: 'Alerting Monitors',
+          id: 'monitor-f-id',
+          name: 'Monitor F',
+          urlPath: 'test-plugin-resource-path',
+        },
+        events: [
+          {
+            timestamp: 1680126903000,
+            metadata: {
+              pluginResourceId: 'monitor-f-id',
+            },
+          },
+        ],
+      },
+    ] as PointInTimeEventsVisLayer[];
+
+    // If visLayerResourceIds is defined on the input, then filter out the found
+    // VisLayers to only include ones in that specified list.
+    // By default, do no filtering.
+    this.visLayers =
+      this.visAugmenterConfig?.visLayerResourceIds === undefined
+        ? visLayers
+        : visLayers.filter((visLayer) =>
+            this.visAugmenterConfig?.visLayerResourceIds?.includes(visLayer.pluginResource.id)
+          );
 
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
       timeRange: this.timeRange,
       abortSignal: this.abortController!.signal,
-      visLayers,
+      visLayers: this.visLayers,
+      visAugmenterConfig: this.visAugmenterConfig,
     });
 
     if (this.handler && !abortController.signal.aborted) {

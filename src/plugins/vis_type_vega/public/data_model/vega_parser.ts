@@ -44,7 +44,7 @@ import { UrlParser } from './url_parser';
 import { SearchAPI } from './search_api';
 import { TimeCache } from './time_cache';
 import { IServiceSettings } from '../../../maps_legacy/public';
-import { VisLayerTypes } from '../../../vis_augmenter/public';
+import { VisAugmenterEmbeddableConfig, VisLayerTypes } from '../../../vis_augmenter/public';
 import {
   Bool,
   Data,
@@ -94,6 +94,7 @@ export class VegaParser {
   filters: Bool;
   timeCache: TimeCache;
   visibleVisLayers: Map<VisLayerTypes, boolean>;
+  visAugmenterConfig: VisAugmenterEmbeddableConfig;
 
   constructor(
     spec: VegaSpec | string,
@@ -105,6 +106,7 @@ export class VegaParser {
     this.spec = spec as VegaSpec;
     this.hideWarnings = false;
     this.visibleVisLayers = new Map<VisLayerTypes, boolean>();
+    this.visAugmenterConfig = {} as VisAugmenterEmbeddableConfig;
 
     this.error = undefined;
     this.warnings = [];
@@ -162,6 +164,9 @@ The URL is an identifier only. OpenSearch Dashboards and your browser will never
     this._config = this._parseConfig();
     this.hideWarnings = !!this._config.hideWarnings;
     this.visibleVisLayers = this._config.visibleVisLayers;
+    // TODO: this config may end up not being needed, depending
+    // on what we may need to change to the underlying heights/widths
+    this.visAugmenterConfig = this._config.visAugmenterConfig;
     this.useMap = this._config.type === 'map';
     this.renderer = this._config.renderer === 'svg' ? 'svg' : 'canvas';
     this.tooltips = this._parseTooltips();
@@ -195,15 +200,11 @@ The URL is an identifier only. OpenSearch Dashboards and your browser will never
     };
 
     // If we are showing PointInTimeEventsVisLayers, it means we are showing a base vis + event vis.
-    // Because this will be using a vconcat spec, we can autosize the width
-    // via fit-x. Note the regular 'fit' (to autosize width + height) does not work here.
+    // Because this will be using a vconcat spec, we cannot use the default autosize settings, or set
+    // top-level height/width values.
     // See limitations: https://vega.github.io/vega-lite/docs/size.html#limitations
     const showPointInTimeEvents =
       this.visibleVisLayers.get(VisLayerTypes.PointInTimeEvents) === true;
-    const showPointInTimeEventsAutosize = {
-      type: 'fit-x',
-      contains: 'padding',
-    };
 
     let autosize = this.spec.autosize;
     let useResize = true;
@@ -235,12 +236,10 @@ The URL is an identifier only. OpenSearch Dashboards and your browser will never
         contains: string;
       };
       useResize = Boolean(autosize?.type && autosize?.type !== 'none');
+    } else if (showPointInTimeEvents) {
+      autosize = undefined;
     } else {
       autosize = defaultAutosize;
-    }
-
-    if (showPointInTimeEvents) {
-      autosize = showPointInTimeEventsAutosize;
     }
 
     if (
