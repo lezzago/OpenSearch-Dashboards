@@ -63,6 +63,7 @@ export {
   visualizeGeoFieldTrigger,
   EXTERNAL_ACTION_TRIGGER,
   externalActionTrigger,
+  OPEN_EVENTS_FLYOUT_TRIGGER,
 } from './triggers';
 export {
   TriggerContextMapping,

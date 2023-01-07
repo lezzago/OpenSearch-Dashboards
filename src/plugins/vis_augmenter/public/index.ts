@@ -22,6 +22,8 @@ export {
   PointInTimeEventsVisLayer,
   isPointInTimeEventsVisLayer,
   isVisLayerWithError,
+  VisAugmenterEmbeddableConfig,
+  VisFlyoutContext,
 } from './types';
 
 export * from './expressions';
