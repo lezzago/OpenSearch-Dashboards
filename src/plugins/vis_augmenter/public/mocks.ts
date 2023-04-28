@@ -3,13 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { get } from 'lodash';
 import { VisualizeEmbeddable, Vis } from '../../visualizations/public';
 import { ErrorEmbeddable } from '../../embeddable/public';
 // eslint-disable-next-line @osd/eslint/no-restricted-paths
 import { timefilterServiceMock } from '../../data/public/query/timefilter/timefilter_service.mock';
 import { EventVisEmbeddableItem } from './view_events_flyout';
 import {
+  VisLayer,
   VisLayerTypes,
+  VisLayerErrorTypes,
   PointInTimeEventsVisLayer,
   PluginResource,
   PointInTimeEvent,
@@ -25,6 +28,7 @@ const PLUGIN_RESOURCE = {
   urlPath: 'test-url-path',
 } as PluginResource;
 const EVENT_COUNT = 3;
+const ERROR_MESSAGE = 'test-error-message';
 
 export const createPluginResource = (
   type: string = PLUGIN_RESOURCE.type,
@@ -81,7 +85,9 @@ export const createMockVisEmbeddable = (
 export const createPointInTimeEventsVisLayer = (
   originPlugin: string = ORIGIN_PLUGIN,
   pluginResource: PluginResource = PLUGIN_RESOURCE,
-  eventCount: number = EVENT_COUNT
+  eventCount: number = EVENT_COUNT,
+  error: boolean = false,
+  errorMessage: string = ERROR_MESSAGE
 ): PointInTimeEventsVisLayer => {
   const events = [] as PointInTimeEvent[];
   for (let i = 0; i < eventCount; i++) {
@@ -97,6 +103,12 @@ export const createPointInTimeEventsVisLayer = (
     type: VisLayerTypes.PointInTimeEvents,
     pluginResource,
     events,
+    error: error
+      ? {
+          type: VisLayerErrorTypes.FETCH_FAILURE,
+          message: errorMessage,
+        }
+      : undefined,
   };
 };
 
@@ -112,5 +124,34 @@ export const createMockEventVisEmbeddableItem = (
   return {
     visLayer,
     embeddable,
+  };
+};
+
+export const createVisLayer = (
+  type: any,
+  error: boolean = false,
+  errorMessage: string = 'some-error-message',
+  resource?: {
+    type?: string;
+    id?: string;
+    name?: string;
+    urlPath?: string;
+  }
+): VisLayer => {
+  return {
+    type,
+    originPlugin: 'test-plugin',
+    pluginResource: {
+      type: get(resource, 'type', 'test-resource-type'),
+      id: get(resource, 'id', 'test-resource-id'),
+      name: get(resource, 'name', 'test-resource-name'),
+      urlPath: get(resource, 'urlPath', 'test-resource-url-path'),
+    },
+    error: error
+      ? {
+          type: VisLayerErrorTypes.FETCH_FAILURE,
+          message: errorMessage,
+        }
+      : undefined,
   };
 };

@@ -28,6 +28,7 @@ export function EventVisItemIcon(props: Props) {
 
   const dangerButton = (
     <EuiButtonIcon
+      data-test-subj="dangerButton"
       aria-label="Open error details"
       className="error-icon-padding"
       iconType={'alert'}
