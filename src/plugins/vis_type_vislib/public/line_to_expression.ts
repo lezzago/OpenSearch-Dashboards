@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { get } from 'lodash';
 import { buildVislibDimensions, Vis } from '../../visualizations/public';
 import { buildExpression, buildExpressionFunction } from '../../expressions/public';
 import { OpenSearchaggsExpressionFunctionDefinition } from '../../data/common/search/expressions';
@@ -10,6 +11,7 @@ import {
   VegaExpressionFunctionDefinition,
   LineVegaSpecExpressionFunctionDefinition,
 } from '../../vis_type_vega/public';
+import { VisAugmenterEmbeddableConfig } from '../../vis_augmenter/public';
 
 export const toExpressionAst = async (vis: Vis, params: any) => {
   // Construct the existing expr fns that are ran for vislib line chart, up until the render fn.
@@ -38,6 +40,12 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
     return ast.toAst();
   } else {
     const dimensions = await buildVislibDimensions(vis, params);
+    const visAugmenterConfig = get(
+      params,
+      'visAugmenterConfig',
+      {}
+    ) as VisAugmenterEmbeddableConfig;
+
     // adding the new expr fn here that takes the datatable and converts to a vega spec
     const vegaSpecFn = buildExpressionFunction<LineVegaSpecExpressionFunctionDefinition>(
       'line_vega_spec',
@@ -45,6 +53,7 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
         visLayers: JSON.stringify(params.visLayers),
         visParams: JSON.stringify(vis.params),
         dimensions: JSON.stringify(dimensions),
+        visAugmenterConfig: JSON.stringify(visAugmenterConfig),
       }
     );
     const vegaSpecFnExpressionBuilder = buildExpression([vegaSpecFn]);
@@ -53,6 +62,7 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
     // spec via 'line_vega_spec' fn, then set as the arg for the final 'vega' fn
     const vegaFn = buildExpressionFunction<VegaExpressionFunctionDefinition>('vega', {
       spec: vegaSpecFnExpressionBuilder,
+      savedObjectId: get(vis, 'id', ''),
     });
     const ast = buildExpression([opensearchaggsFn, vegaFn]);
     return ast.toAst();

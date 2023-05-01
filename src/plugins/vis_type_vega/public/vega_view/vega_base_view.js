@@ -30,6 +30,7 @@
 
 import $ from 'jquery';
 import moment from 'moment';
+import { get } from 'lodash';
 import dateMath from '@elastic/datemath';
 import { vega, vegaLite, vegaExpressionInterpreter } from '../lib/vega';
 import { Utils } from '../data_model/utils';
@@ -38,9 +39,10 @@ import { i18n } from '@osd/i18n';
 import { TooltipHandler } from './vega_tooltip';
 import { opensearchFilters } from '../../../data/public';
 
-import { getEnableExternalUrls, getData } from '../services';
+import { getEnableExternalUrls, getData, getUiActions } from '../services';
 import { extractIndexPatternsFromSpec } from '../lib/extract_index_pattern';
 import { interactionHandlersByAction } from '../../../vis_augmenter/public';
+import { OPEN_EVENTS_FLYOUT_TRIGGER } from '../../../ui_actions/public';
 
 vega.scheme('euiPaletteColorBlind', euiPaletteColorBlind());
 
@@ -85,6 +87,7 @@ export class VegaBaseView {
     this._destroyHandlers = [];
     this._initialized = false;
     this._enableExternalUrls = getEnableExternalUrls();
+    this._visInput = opts.visInput;
   }
 
   async init() {
@@ -269,11 +272,11 @@ export class VegaBaseView {
   // space and leave enough space to show the bottom view (the events vis).
   // Ref: https://vega.github.io/vega-lite/docs/size.html#limitations
   addPointInTimeEventPadding(view) {
-    // TODO: 100 is enough padding for now. May need to adjust once the current scrolling/overflow
-    // issue is handled. See https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3501
     const eventVisHeight = 100;
     const height = Math.max(0, this._$container.height()) - eventVisHeight;
-    view._signals.concat_0_height.value = height;
+    if (view._signals.concat_0_height !== undefined) {
+      view._signals.concat_0_height.value = height;
+    }
   }
 
   setView(view) {
@@ -305,6 +308,14 @@ export class VegaBaseView {
           }
         });
       }
+      // TODO: The filtering on the item ('annotation datapoint' vs. regular datapoint, etc.) will be handled in
+      // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3317
+      // Right now, clicking anywhere on the chart will trigger the flyout to open.
+      /* eslint-disable */
+      view.addEventListener('click', function (event, item) {
+        const { savedObjectId } = get(view, '_opensearchDashboardsView._visInput', {});
+        getUiActions().getTrigger(OPEN_EVENTS_FLYOUT_TRIGGER).exec({ savedObjectId });
+      });
 
       return view.runAsync(); // Allows callers to await rendering
     }

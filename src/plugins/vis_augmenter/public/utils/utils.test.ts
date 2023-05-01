@@ -19,7 +19,7 @@ import {
   VisLayerExpressionFn,
   VisLayerTypes,
 } from '../';
-import { generateVisLayer } from './';
+import { createVisLayer } from '../mocks';
 
 describe('utils', () => {
   // TODO: redo / update this test suite when eligibility is finalized.
@@ -135,14 +135,14 @@ describe('utils', () => {
   });
 
   describe('getAnyErrors', () => {
-    const noErrorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
-    const noErrorLayer2 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
-    const errorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'uh-oh!', {
+    const noErrorLayer1 = createVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    const noErrorLayer2 = createVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    const errorLayer1 = createVisLayer(VisLayerTypes.PointInTimeEvents, true, 'uh-oh!', {
       type: 'resource-type-1',
       id: '1234',
       name: 'resource-1',
     });
-    const errorLayer2 = generateVisLayer(
+    const errorLayer2 = createVisLayer(
       VisLayerTypes.PointInTimeEvents,
       true,
       'oh no something terrible has happened :(',
@@ -152,7 +152,7 @@ describe('utils', () => {
         name: 'resource-2',
       }
     );
-    const errorLayer3 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'oops!', {
+    const errorLayer3 = createVisLayer(VisLayerTypes.PointInTimeEvents, true, 'oops!', {
       type: 'resource-type-1',
       id: 'abcd',
       name: 'resource-3',

@@ -65,3 +65,17 @@ export const isValidVisLayer = (obj: any) => {
  * Used for checking if an existing VisLayer has a populated error field or not
  */
 export const isVisLayerWithError = (visLayer: VisLayer): boolean => visLayer.error !== undefined;
+// We need to have some extra config in order to render the charts correctly in different contexts.
+// For example, we use the same base vis and modify it within the view events flyout to hide
+// axes, only show events, only show timeline, add custom padding, etc.
+// So, we abstract these concepts out and let the underlying implementation make changes as needed
+// to support the different contexts.
+export interface VisAugmenterEmbeddableConfig {
+  visLayerResourceIds?: string[];
+  inFlyout?: boolean;
+  isBaseVis?: boolean;
+  isEventVis?: boolean;
+  isTimelineVis?: boolean;
+  leftValueAxisPadding?: boolean;
+  rightValueAxisPadding?: boolean;
+}

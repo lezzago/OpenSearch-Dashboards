@@ -32,7 +32,7 @@ import { SearchResponse, SearchParams } from 'elasticsearch';
 
 import { Filter } from 'src/plugins/data/public';
 import { DslQuery } from 'src/plugins/data/common';
-import { VisLayerTypes } from 'src/plugins/vis_augmenter/public';
+import { VisAugmenterEmbeddableConfig, VisLayerTypes } from 'src/plugins/vis_augmenter/public';
 import { OpenSearchQueryParser } from './opensearch_query_parser';
 import { EmsFileParser } from './ems_file_parser';
 import { UrlParser } from './url_parser';
@@ -121,6 +121,7 @@ export interface OpenSearchDashboards {
   renderer: Renderer;
   visibleVisLayers?: Map<VisLayerTypes, boolean>;
   visInteractions?: VisInteractionDescriptor[];
+  visAugmenterConfig?: VisAugmenterEmbeddableConfig;
 }
 
 export interface VegaSpec {

@@ -22,6 +22,7 @@ export {
   PointInTimeEventsVisLayer,
   isPointInTimeEventsVisLayer,
   isVisLayerWithError,
+  VisAugmenterEmbeddableConfig,
 } from './types';
 
 export * from './expressions';
