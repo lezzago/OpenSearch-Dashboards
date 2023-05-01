@@ -5,6 +5,7 @@
 
 import moment from 'moment';
 import { cloneDeep, isEmpty, get } from 'lodash';
+import { Item, ScenegraphEvent } from 'vega';
 import {
   OpenSearchDashboardsDatatable,
   OpenSearchDashboardsDatatableColumn,
@@ -24,6 +25,7 @@ import {
   VisLayers,
   VisLayerTypes,
 } from '../';
+import { VisInteractionEventHandlerName, VisInteraction as VisAnnotationType } from './constants';
 
 // Given any visLayers, create a map to indicate which VisLayer types are present.
 // Convert to an array since ES6 Maps cannot be stringified.
@@ -314,7 +316,10 @@ export const addPointInTimeEventsLayersToSpec = (
       filled: true,
       opacity: 1,
     },
-    transform: [{ filter: generateVisLayerFilterString(visLayerColumnIds) }],
+    transform: [
+      { filter: generateVisLayerFilterString(visLayerColumnIds) },
+      { calculate: `'${VisAnnotationType.POINT_IN_TIME_ANNOTATION}'`, as: 'annotationType' },
+    ],
     params: [{ name: HOVER_PARAM, select: { type: 'point', on: 'mouseover' } }],
     encoding: {
       x: {
@@ -339,4 +344,59 @@ export const addPointInTimeEventsLayersToSpec = (
   });
 
   return newSpec;
+};
+
+/**
+ * Interaction handling functions mapped by their action names.
+ */
+export const interactionHandlersByAction = {
+  [VisInteractionEventHandlerName.POINT_IN_TIME_CLICK_EVENT_HANDLER]: (
+    _event: ScenegraphEvent,
+    item?: Item | null
+  ) => {
+    if (isPointInTimeAnnotation(item)) {
+      // TODO: Show the events flyout
+    }
+  },
+  [VisInteractionEventHandlerName.POINT_IN_TIME_HOVER_IN_EVENT_HANDLER]: (
+    _event: ScenegraphEvent,
+    item?: Item | null
+  ) => {
+    if (isPointInTimeAnnotation(item)) {
+      // TODO: Show the custom tooltip
+    }
+  },
+};
+
+/**
+ * Updating the vega-lite spec to add interaction config that is used to add event handlers on the visualization view.
+ * Note: Since, we cannot have handler functions added directly to the spec object as it is stringified,
+ * we pass the handler names as part of the config and use the @see interactionHandlersByAction to get the corresponding
+ * handler when required.
+ */
+export const addPointInTimeInteractionsConfig = (config: object) => {
+  const kibana = get(config, 'kibana', {});
+  const withInteractionsConfig = {
+    ...kibana,
+    visInteractions: [
+      ...(kibana.visInteractions || []),
+      {
+        event: 'click',
+        handlerName: VisInteractionEventHandlerName.POINT_IN_TIME_CLICK_EVENT_HANDLER,
+      },
+      {
+        event: 'mouseover',
+        handlerName: VisInteractionEventHandlerName.POINT_IN_TIME_HOVER_IN_EVENT_HANDLER,
+      },
+    ],
+  };
+
+  return {
+    ...config,
+    kibana: withInteractionsConfig,
+  };
+};
+
+export const isPointInTimeAnnotation = (item?: Item | null) => {
+  return item?.datum?.annotationType === VisAnnotationType.POINT_IN_TIME_ANNOTATION;
 };
