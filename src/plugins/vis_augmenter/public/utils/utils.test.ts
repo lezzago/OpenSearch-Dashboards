@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Vis } from '../../../visualizations/public';
+import { Vis, VislibDimensions } from '../../../visualizations/public';
 import {
   buildPipelineFromAugmentVisSavedObjs,
   getAugmentVisSavedObjs,
@@ -20,26 +20,234 @@ import {
   VisLayerTypes,
 } from '../';
 import { createVisLayer } from '../mocks';
+import { AggConfigs, AggTypesRegistryStart, IndexPattern } from '../../../data/common';
+import { mockAggTypesRegistry } from '../../../data/common/search/aggs/test_helpers';
 
 describe('utils', () => {
-  // TODO: redo / update this test suite when eligibility is finalized.
-  // Tracked in https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3268
   describe('isEligibleForVisLayers', () => {
-    it('vis is ineligible with invalid type', async () => {
+    const validDimensions = {
+      x: {
+        params: {
+          bounds: {
+            min: '2023-03-22T21:55:12.455Z',
+            max: '2023-03-23T21:55:12.455Z',
+          },
+        },
+        label: 'order_date per 30 minutes',
+      },
+    } as VislibDimensions;
+    const configStates = [
+      {
+        enabled: true,
+        type: 'max',
+        params: {},
+        schema: 'metric',
+      },
+      {
+        enabled: true,
+        type: 'date_histogram',
+        params: {},
+        schema: 'segment',
+      },
+    ];
+    const stubIndexPatternWithFields = {
+      id: '1234',
+      title: 'logstash-*',
+      fields: [
+        {
+          name: 'response',
+          type: 'number',
+          esTypes: ['integer'],
+          aggregatable: true,
+          filterable: true,
+          searchable: true,
+        },
+      ],
+    };
+    const typesRegistry: AggTypesRegistryStart = mockAggTypesRegistry();
+    const aggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, configStates, {
+      typesRegistry,
+    });
+    const validVis = ({
+      params: {
+        type: 'line',
+        seriesParams: [
+          {
+            type: 'line',
+          },
+        ],
+        categoryAxes: [
+          {
+            position: 'bottom',
+          },
+        ],
+      },
+      data: {
+        aggs,
+      },
+    } as unknown) as Vis;
+    it('vis is ineligible with invalid non-line type', async () => {
       const vis = ({
         params: {
           type: 'not-line',
+          seriesParams: [],
+          categoryAxes: [
+            {
+              position: 'bottom',
+            },
+          ],
+        },
+        data: {
+          aggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis)).toEqual(false);
+      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
     });
-    it('vis is eligible with valid type', async () => {
+    it('vis is ineligible with no date_histogram', async () => {
+      const invalidConfigStates = [
+        {
+          enabled: true,
+          type: 'histogram',
+          params: {},
+        },
+        {
+          enabled: true,
+          type: 'metrics',
+          params: {},
+        },
+      ];
+      const invalidAggs = new AggConfigs(
+        stubIndexPatternWithFields as IndexPattern,
+        invalidConfigStates,
+        {
+          typesRegistry,
+        }
+      );
       const vis = ({
         params: {
           type: 'line',
+          seriesParams: [],
+        },
+        data: {
+          invalidAggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis)).toEqual(true);
+      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+    });
+    it('vis is ineligible with invalid aggs counts', async () => {
+      const invalidConfigStates = [
+        {
+          enabled: true,
+          type: 'date_histogram',
+          params: {},
+        },
+        {
+          enabled: true,
+          type: 'dot',
+          params: {},
+          schema: 'radius',
+        },
+        {
+          enabled: true,
+          type: 'metrics',
+          params: {},
+          schema: 'metrics',
+        },
+      ];
+      const invalidAggs = new AggConfigs(
+        stubIndexPatternWithFields as IndexPattern,
+        invalidConfigStates,
+        {
+          typesRegistry,
+        }
+      );
+      const vis = ({
+        params: {
+          type: 'line',
+          seriesParams: [],
+        },
+        data: {
+          invalidAggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+    });
+    it('vis is ineligible with no metric aggs', async () => {
+      const invalidConfigStates = [
+        {
+          enabled: true,
+          type: 'date_histogram',
+          params: {},
+        },
+      ];
+      const invalidAggs = new AggConfigs(
+        stubIndexPatternWithFields as IndexPattern,
+        invalidConfigStates,
+        {
+          typesRegistry,
+        }
+      );
+      const vis = ({
+        params: {
+          type: 'line',
+          seriesParams: [],
+        },
+        data: {
+          invalidAggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+    });
+    it('vis is ineligible with series param is not line type', async () => {
+      const vis = ({
+        params: {
+          type: 'line',
+          seriesParams: [
+            {
+              type: 'area',
+            },
+          ],
+          categoryAxes: [
+            {
+              position: 'bottom',
+            },
+          ],
+        },
+        data: {
+          aggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+    });
+    it('vis is ineligible with invalid dimensions', async () => {
+      const invalidDimensions = {
+        x: null,
+      } as VislibDimensions;
+      expect(isEligibleForVisLayers(validVis, invalidDimensions)).toEqual(false);
+    });
+    it('vis is ineligible with xaxis not on bottom', async () => {
+      const invalidVis = ({
+        params: {
+          type: 'line',
+          seriesParams: [
+            {
+              type: 'line',
+            },
+          ],
+          categoryAxes: [
+            {
+              position: 'top',
+            },
+          ],
+        },
+        data: {
+          aggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(invalidVis, validDimensions)).toEqual(false);
+    });
+    it('vis is eligible with valid type', async () => {
+      expect(isEligibleForVisLayers(validVis, validDimensions)).toEqual(true);
     });
   });
 

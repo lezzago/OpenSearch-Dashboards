@@ -4,7 +4,7 @@
  */
 
 import { get, isEmpty } from 'lodash';
-import { Vis } from '../../../../plugins/visualizations/public';
+import { Vis, VislibDimensions } from '../../../../plugins/visualizations/public';
 import {
   formatExpression,
   buildExpressionFunction,
@@ -19,10 +19,25 @@ import {
   isVisLayerWithError,
 } from '../';
 
-// TODO: provide a deeper eligibility check.
-// Tracked in https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3268
-export const isEligibleForVisLayers = (vis: Vis): boolean => {
-  return vis.params.type === 'line';
+export const isEligibleForVisLayers = (vis: Vis, dimensions: VislibDimensions): boolean => {
+  // Only support date histogram and ensure there is only 1 x-axis and it has to be on the bottom
+  const isValidXaxis =
+    vis.data.aggs?.byTypeName('date_histogram').length === 1 &&
+    vis.params.categoryAxes.length === 1 &&
+    vis.params.categoryAxes[0].position === 'bottom';
+  // Support 1 segment for x axis bucket (that is date_histogram) and support metrics for
+  // multiple supported yaxis only. If there are other aggregation types, this is not
+  // valid for augmentation
+  const hasCorrectAggregationCount =
+    vis.data.aggs !== undefined &&
+    vis.data.aggs?.bySchemaName('metric').length > 0 &&
+    vis.data.aggs?.bySchemaName('metric').length === vis.data.aggs?.aggs.length - 1;
+  let isOnlyLine = vis.params.type === 'line';
+  vis.params.seriesParams.forEach((seriesParam: { type: string }) => {
+    isOnlyLine = isOnlyLine && seriesParam.type === 'line';
+  });
+  const isValidDimensions = dimensions.x !== null;
+  return isValidXaxis && hasCorrectAggregationCount && isOnlyLine && isValidDimensions;
 };
 
 /**

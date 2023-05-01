@@ -4,7 +4,7 @@
  */
 
 import { get } from 'lodash';
-import { buildVislibDimensions, Vis } from '../../visualizations/public';
+import { buildVislibDimensions, Vis, VislibDimensions } from '../../visualizations/public';
 import { buildExpression, buildExpressionFunction } from '../../expressions/public';
 import { OpenSearchaggsExpressionFunctionDefinition } from '../../data/common/search/expressions';
 import {
@@ -12,6 +12,7 @@ import {
   LineVegaSpecExpressionFunctionDefinition,
 } from '../../vis_type_vega/public';
 import { VisAugmenterEmbeddableConfig } from '../../vis_augmenter/public';
+import { isEligibleForVisLayers } from '../../vis_augmenter/public';
 
 export const toExpressionAst = async (vis: Vis, params: any) => {
   // Construct the existing expr fns that are ran for vislib line chart, up until the render fn.
@@ -28,9 +29,13 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
   );
 
   // Checks if there are vislayers to overlay. If not, default to the vislib implementation.
-  if (params.visLayers == null || Object.keys(params.visLayers).length === 0) {
-    // This wont work but is needed so then it will default to the original vis lib renderer
-    const dimensions = await buildVislibDimensions(vis, params);
+  const dimensions: VislibDimensions = await buildVislibDimensions(vis, params);
+  if (
+    !isEligibleForVisLayers(vis, dimensions) ||
+    params.visLayers == null ||
+    Object.keys(params.visLayers).length === 0
+  ) {
+    // Render using vislib instead of vega-lite
     const visConfig = { ...vis.params, dimensions };
     const vislib = buildExpressionFunction<any>('vislib', {
       type: 'line',
@@ -39,7 +44,6 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
     const ast = buildExpression([opensearchaggsFn, vislib]);
     return ast.toAst();
   } else {
-    const dimensions = await buildVislibDimensions(vis, params);
     const visAugmenterConfig = get(
       params,
       'visAugmenterConfig',
