@@ -68,8 +68,6 @@ export async function fetchVisEmbeddable(
         isBaseVis: true,
       },
     } as VisualizeInput)) as VisualizeEmbeddable | ErrorEmbeddable;
-    console.log('embeddable');
-    console.log(embeddable);
 
     if (embeddable instanceof ErrorEmbeddable) {
       throw getErrorMessage(embeddable);
@@ -83,9 +81,8 @@ export async function fetchVisEmbeddable(
       },
     });
 
-    // reload is needed so we can fetch the initial VisLayers, and so they're
-    // assigned to the vislayers field in the embeddable itself
-    embeddable.reload();
+    // By waiting for this to complete, embeddable.visLayers will be populated
+    await embeddable.populateVisLayers();
 
     // await sleep(1000);
 
@@ -93,10 +90,6 @@ export async function fetchVisEmbeddable(
   } catch (err: any) {
     setErrorMessage(String(err));
   }
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
