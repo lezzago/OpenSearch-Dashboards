@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { cloneDeep, isEmpty, get } from 'lodash';
+import { cloneDeep, isEmpty } from 'lodash';
 import { i18n } from '@osd/i18n';
 import {
   ExpressionFunctionDefinition,

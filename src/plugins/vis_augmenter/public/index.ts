@@ -25,6 +25,8 @@ export {
   VisAugmenterEmbeddableConfig,
 } from './types';
 
+export { getSavedAugmentVisLoader } from './services';
+
 export * from './expressions';
 export * from './utils';
 export * from './constants';

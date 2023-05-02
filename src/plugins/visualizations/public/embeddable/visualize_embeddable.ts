@@ -55,7 +55,7 @@ import {
   ExpressionsStart,
   ExpressionRenderError,
 } from '../../../expressions/public';
-import { buildPipeline } from '../legacy/build_pipeline';
+import { buildPipeline, buildVislibDimensions, VislibDimensions } from '../legacy/build_pipeline';
 import { Vis, SerializedVis } from '../vis';
 import { getExpressions, getNotifications, getUiActions } from '../services';
 import { VIS_EVENT_TO_TRIGGER } from './events';
@@ -418,161 +418,217 @@ export class VisualizeEmbeddable
 
     // TODO: remove hardcoded vislayers when finished testing
     // const visLayers = await this.fetchVisLayers(expressionParams, abortController);
+    // console.log('vislayers');
+    // console.log(JSON.stringify(visLayers));
     const visLayers = [
       {
-        originPlugin: 'anomalyDetectionDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
+        originPlugin: 'Alerting',
+        type: 'PointInTimeEvents',
         pluginResource: {
-          type: 'Anomaly Detectors',
-          id: 'detector-a-id',
-          name: 'Detector A',
-          urlPath: 'test-plugin-resource-path',
+          type: 'Alerting-resource-type',
+          id: 'Rcvd3IcBGjjacwviVkoC',
+          name: 't1',
+          urlPath: 'alerting#/monitors',
         },
         events: [
           {
-            timestamp: 1679781303000,
+            timestamp: 1683038695184.5,
             metadata: {
-              pluginResourceId: 'detector-a-id',
+              pluginResourceId: 'Rcvd3IcBGjjacwviVkoC',
             },
           },
           {
-            timestamp: 1680126903000,
+            timestamp: 841519812969,
             metadata: {
-              pluginResourceId: 'detector-a-id',
-            },
-          },
-          {
-            timestamp: 1680299703000,
-            metadata: {
-              pluginResourceId: 'detector-a-id',
+              pluginResourceId: 'Rcvd3IcBGjjacwviVkoC',
             },
           },
         ],
       },
       {
-        originPlugin: 'anomalyDetectionDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
+        originPlugin: 'Alerting',
+        type: 'PointInTimeEvents',
         pluginResource: {
-          type: 'Anomaly Detectors',
-          id: 'detector-b-id',
-          name: 'Detector B',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [],
-        error: {
-          type: VisLayerErrorTypes.FETCH_FAILURE,
-          message: 'Failed to fetch events',
-        },
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-a-id',
-          name: 'Monitor A',
-          urlPath: 'test-plugin-resource-path',
+          type: 'Alerting-resource-type',
+          id: 'T8vg3IcBGjjacwviFUrq',
+          name: 'test 166033',
+          urlPath: 'alerting#/monitors',
         },
         events: [
           {
-            timestamp: 1679781303000,
+            timestamp: 1683038695184.5,
             metadata: {
-              pluginResourceId: 'monitor-a-id',
+              pluginResourceId: 'T8vg3IcBGjjacwviFUrq',
             },
           },
-        ],
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-b-id',
-          name: 'Monitor B',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [
           {
-            timestamp: 1680126903000,
+            timestamp: 841519812969,
             metadata: {
-              pluginResourceId: 'monitor-b-id',
-            },
-          },
-        ],
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-c-id',
-          name: 'Monitor C',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [
-          {
-            timestamp: 1679781303000,
-            metadata: {
-              pluginResourceId: 'monitor-c-id',
-            },
-          },
-        ],
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-d-id',
-          name: 'Monitor D',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [
-          {
-            timestamp: 1680299703000,
-            metadata: {
-              pluginResourceId: 'monitor-d-id',
-            },
-          },
-        ],
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-e-id',
-          name: 'Monitor E',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [
-          {
-            timestamp: 1680299703000,
-            metadata: {
-              pluginResourceId: 'monitor-e-id',
-            },
-          },
-        ],
-      },
-      {
-        originPlugin: 'alertingDashboards',
-        type: VisLayerTypes.PointInTimeEvents,
-        pluginResource: {
-          type: 'Alerting Monitors',
-          id: 'monitor-f-id',
-          name: 'Monitor F',
-          urlPath: 'test-plugin-resource-path',
-        },
-        events: [
-          {
-            timestamp: 1680126903000,
-            metadata: {
-              pluginResourceId: 'monitor-f-id',
+              pluginResourceId: 'T8vg3IcBGjjacwviFUrq',
             },
           },
         ],
       },
     ] as PointInTimeEventsVisLayer[];
+    // console.log('vislayers');
+    // console.log(JSON.stringify(visLayers));
+    // const visLayers = [
+    //   {
+    //     originPlugin: 'anomalyDetectionDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Anomaly Detectors',
+    //       id: 'detector-a-id',
+    //       name: 'Detector A',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1679781303000,
+    //         metadata: {
+    //           pluginResourceId: 'detector-a-id',
+    //         },
+    //       },
+    //       {
+    //         timestamp: 1680126903000,
+    //         metadata: {
+    //           pluginResourceId: 'detector-a-id',
+    //         },
+    //       },
+    //       {
+    //         timestamp: 1680299703000,
+    //         metadata: {
+    //           pluginResourceId: 'detector-a-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'anomalyDetectionDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Anomaly Detectors',
+    //       id: 'detector-b-id',
+    //       name: 'Detector B',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [],
+    //     error: {
+    //       type: VisLayerErrorTypes.FETCH_FAILURE,
+    //       message: 'Failed to fetch events',
+    //     },
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-a-id',
+    //       name: 'Monitor A',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1679781303000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-a-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-b-id',
+    //       name: 'Monitor B',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1680126903000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-b-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-c-id',
+    //       name: 'Monitor C',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1679781303000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-c-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-d-id',
+    //       name: 'Monitor D',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1680299703000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-d-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-e-id',
+    //       name: 'Monitor E',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1680299703000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-e-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     originPlugin: 'alertingDashboards',
+    //     type: VisLayerTypes.PointInTimeEvents,
+    //     pluginResource: {
+    //       type: 'Alerting Monitors',
+    //       id: 'monitor-f-id',
+    //       name: 'Monitor F',
+    //       urlPath: 'test-plugin-resource-path',
+    //     },
+    //     events: [
+    //       {
+    //         timestamp: 1680126903000,
+    //         metadata: {
+    //           pluginResourceId: 'monitor-f-id',
+    //         },
+    //       },
+    //     ],
+    //   },
+    // ] as PointInTimeEventsVisLayer[];
+
+    // await this.sleep(1000);
 
     // If visLayerResourceIds is defined on the input, then filter out the found
     // VisLayers to only include ones in that specified list.
@@ -583,6 +639,8 @@ export class VisualizeEmbeddable
         : visLayers.filter((visLayer) =>
             this.visAugmenterConfig?.visLayerResourceIds?.includes(visLayer.pluginResource.id)
           );
+    console.log('vislayers: ' + visLayers.length);
+    console.log(JSON.stringify(this.visLayers));
 
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
@@ -597,8 +655,12 @@ export class VisualizeEmbeddable
     }
   }
 
+  private sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   private handleVisUpdate = async () => {
-    this.updateHandler();
+    await this.updateHandler();
   };
 
   private uiStateChangeHandler = () => {

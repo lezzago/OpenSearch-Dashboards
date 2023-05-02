@@ -4,7 +4,7 @@
  */
 
 import { get, isEmpty } from 'lodash';
-import { Vis, VislibDimensions } from '../../../../plugins/visualizations/public';
+import { Vis } from '../../../../plugins/visualizations/public';
 import {
   formatExpression,
   buildExpressionFunction,
@@ -19,7 +19,7 @@ import {
   isVisLayerWithError,
 } from '../';
 
-export const isEligibleForVisLayers = (vis: Vis, dimensions: VislibDimensions): boolean => {
+export const isEligibleForVisLayers = (vis: Vis): boolean => {
   // Only support date histogram and ensure there is only 1 x-axis and it has to be on the bottom
   const isValidXaxis =
     vis.data.aggs?.byTypeName('date_histogram').length === 1 &&
@@ -36,7 +36,8 @@ export const isEligibleForVisLayers = (vis: Vis, dimensions: VislibDimensions): 
   vis.params.seriesParams.forEach((seriesParam: { type: string }) => {
     isOnlyLine = isOnlyLine && seriesParam.type === 'line';
   });
-  const isValidDimensions = dimensions.x !== null;
+  const isValidDimensions =
+    vis.data.aggs !== undefined && vis.data.aggs?.bySchemaName('segment').length > 0;
   return isValidXaxis && hasCorrectAggregationCount && isOnlyLine && isValidDimensions;
 };
 

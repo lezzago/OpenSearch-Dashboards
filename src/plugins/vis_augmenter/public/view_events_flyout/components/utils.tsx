@@ -68,6 +68,8 @@ export async function fetchVisEmbeddable(
         isBaseVis: true,
       },
     } as VisualizeInput)) as VisualizeEmbeddable | ErrorEmbeddable;
+    console.log('embeddable');
+    console.log(embeddable);
 
     if (embeddable instanceof ErrorEmbeddable) {
       throw getErrorMessage(embeddable);
@@ -85,10 +87,16 @@ export async function fetchVisEmbeddable(
     // assigned to the vislayers field in the embeddable itself
     embeddable.reload();
 
+    // await sleep(1000);
+
     setVisEmbeddable(embeddable);
   } catch (err: any) {
     setErrorMessage(String(err));
   }
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

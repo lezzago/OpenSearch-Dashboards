@@ -45,6 +45,10 @@ export function ViewEventsFlyout(props: Props) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
 
+  console.log('viewEventsFlyout');
+  console.log(visEmbeddable);
+  console.log(visEmbeddable?.visLayers);
+
   function reload() {
     visEmbeddable?.reload();
     eventVisEmbeddablesMap?.forEach((embeddableItems) => {
@@ -55,12 +59,19 @@ export function ViewEventsFlyout(props: Props) {
   }
 
   useEffect(() => {
+    console.log('fetchvisem');
     fetchVisEmbeddable(props.savedObjectId, setTimeRange, setVisEmbeddable, setErrorMessage);
+    console.log(visEmbeddable?.visLayers);
     /* eslint-disable */
   }, [props.savedObjectId]);
 
   useEffect(() => {
+
+    console.log('view events vis layers:');
+    console.log(visEmbeddable);
+    console.log(visEmbeddable?.visLayers);
     if (visEmbeddable?.visLayers) {
+      console.log('Entering create events');
       createEventEmbeddables(
         props.savedObjectId,
         visEmbeddable,
@@ -74,7 +85,7 @@ export function ViewEventsFlyout(props: Props) {
         setErrorMessage
       );
     }
-  }, [visEmbeddable?.visLayers]);
+  }, [visEmbeddable]);
 
   useEffect(() => {
     if (

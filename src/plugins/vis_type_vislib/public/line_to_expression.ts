@@ -31,7 +31,7 @@ export const toExpressionAst = async (vis: Vis, params: any) => {
   // Checks if there are vislayers to overlay. If not, default to the vislib implementation.
   const dimensions: VislibDimensions = await buildVislibDimensions(vis, params);
   if (
-    !isEligibleForVisLayers(vis, dimensions) ||
+    !isEligibleForVisLayers(vis) ||
     params.visLayers == null ||
     Object.keys(params.visLayers).length === 0
   ) {

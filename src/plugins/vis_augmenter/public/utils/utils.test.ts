@@ -101,7 +101,7 @@ describe('utils', () => {
           aggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
     it('vis is ineligible with no date_histogram', async () => {
       const invalidConfigStates = [
@@ -132,7 +132,7 @@ describe('utils', () => {
           invalidAggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
     it('vis is ineligible with invalid aggs counts', async () => {
       const invalidConfigStates = [
@@ -170,7 +170,7 @@ describe('utils', () => {
           invalidAggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
     it('vis is ineligible with no metric aggs', async () => {
       const invalidConfigStates = [
@@ -196,7 +196,7 @@ describe('utils', () => {
           invalidAggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
     it('vis is ineligible with series param is not line type', async () => {
       const vis = ({
@@ -217,13 +217,13 @@ describe('utils', () => {
           aggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(vis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
     it('vis is ineligible with invalid dimensions', async () => {
       const invalidDimensions = {
         x: null,
       } as VislibDimensions;
-      expect(isEligibleForVisLayers(validVis, invalidDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(validVis)).toEqual(false);
     });
     it('vis is ineligible with xaxis not on bottom', async () => {
       const invalidVis = ({
@@ -244,10 +244,10 @@ describe('utils', () => {
           aggs,
         },
       } as unknown) as Vis;
-      expect(isEligibleForVisLayers(invalidVis, validDimensions)).toEqual(false);
+      expect(isEligibleForVisLayers(invalidVis)).toEqual(false);
     });
     it('vis is eligible with valid type', async () => {
-      expect(isEligibleForVisLayers(validVis, validDimensions)).toEqual(true);
+      expect(isEligibleForVisLayers(validVis)).toEqual(true);
     });
   });
 
