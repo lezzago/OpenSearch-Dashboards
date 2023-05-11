@@ -9,15 +9,14 @@ import {
   getAugmentVisSavedObjs,
   getAnyErrors,
   isEligibleForVisLayers,
-} from './utils';
-import {
   createSavedAugmentVisLoader,
   SavedObjectOpenSearchDashboardsServicesWithAugmentVis,
   getMockAugmentVisSavedObjectClient,
   generateAugmentVisSavedObject,
   ISavedAugmentVis,
-  VisLayerExpressionFn,
+  generateVisLayer,
   VisLayerTypes,
+  VisLayerExpressionFn,
 } from '../';
 import { createVisLayer } from '../mocks';
 import { AggConfigs, AggTypesRegistryStart, IndexPattern } from '../../../data/common';
@@ -25,18 +24,7 @@ import { mockAggTypesRegistry } from '../../../data/common/search/aggs/test_help
 
 describe('utils', () => {
   describe('isEligibleForVisLayers', () => {
-    const validDimensions = {
-      x: {
-        params: {
-          bounds: {
-            min: '2023-03-22T21:55:12.455Z',
-            max: '2023-03-23T21:55:12.455Z',
-          },
-        },
-        label: 'order_date per 30 minutes',
-      },
-    } as VislibDimensions;
-    const configStates = [
+    const validConfigStates = [
       {
         enabled: true,
         type: 'max',
@@ -65,7 +53,7 @@ describe('utils', () => {
       ],
     };
     const typesRegistry: AggTypesRegistryStart = mockAggTypesRegistry();
-    const aggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, configStates, {
+    const aggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, validConfigStates, {
       typesRegistry,
     });
     const validVis = ({
@@ -136,22 +124,12 @@ describe('utils', () => {
     });
     it('vis is ineligible with invalid aggs counts', async () => {
       const invalidConfigStates = [
-        {
-          enabled: true,
-          type: 'date_histogram',
-          params: {},
-        },
+        ...validConfigStates,
         {
           enabled: true,
           type: 'dot',
           params: {},
           schema: 'radius',
-        },
-        {
-          enabled: true,
-          type: 'metrics',
-          params: {},
-          schema: 'metrics',
         },
       ];
       const invalidAggs = new AggConfigs(
@@ -219,11 +197,67 @@ describe('utils', () => {
       } as unknown) as Vis;
       expect(isEligibleForVisLayers(vis)).toEqual(false);
     });
-    it('vis is ineligible with invalid dimensions', async () => {
-      const invalidDimensions = {
-        x: null,
-      } as VislibDimensions;
-      expect(isEligibleForVisLayers(validVis)).toEqual(false);
+    it('vis is ineligible with series param not all being line type', async () => {
+      const vis = ({
+        params: {
+          type: 'line',
+          seriesParams: [
+            {
+              type: 'area',
+            },
+            {
+              type: 'line',
+            },
+          ],
+          categoryAxes: [
+            {
+              position: 'bottom',
+            },
+          ],
+        },
+        data: {
+          aggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(vis)).toEqual(false);
+    });
+    it('vis is ineligible with invalid x-axis due to no segment aggregation', async () => {
+      const badConfigStates = [
+        {
+          enabled: true,
+          type: 'max',
+          params: {},
+          schema: 'metric',
+        },
+        {
+          enabled: true,
+          type: 'max',
+          params: {},
+          schema: 'metric',
+        },
+      ];
+      const badAggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, badConfigStates, {
+        typesRegistry,
+      });
+      const invalidVis = ({
+        params: {
+          type: 'line',
+          seriesParams: [
+            {
+              type: 'line',
+            },
+          ],
+          categoryAxes: [
+            {
+              position: 'bottom',
+            },
+          ],
+        },
+        data: {
+          badAggs,
+        },
+      } as unknown) as Vis;
+      expect(isEligibleForVisLayers(invalidVis)).toEqual(false);
     });
     it('vis is ineligible with xaxis not on bottom', async () => {
       const invalidVis = ({

@@ -20,11 +20,14 @@ import {
 } from '../';
 
 export const isEligibleForVisLayers = (vis: Vis): boolean => {
-  // Only support date histogram and ensure there is only 1 x-axis and it has to be on the bottom
-  const isValidXaxis =
+  // Only support date histogram and ensure there is only 1 x-axis and it has to be on the bottom.
+  // Additionally to have a valid x-axis, there needs to be a segment aggregation
+  const hasValidXaxis =
+    vis.data.aggs !== undefined &&
     vis.data.aggs?.byTypeName('date_histogram').length === 1 &&
     vis.params.categoryAxes.length === 1 &&
-    vis.params.categoryAxes[0].position === 'bottom';
+    vis.params.categoryAxes[0].position === 'bottom' &&
+    vis.data.aggs?.bySchemaName('segment').length > 0;
   // Support 1 segment for x axis bucket (that is date_histogram) and support metrics for
   // multiple supported yaxis only. If there are other aggregation types, this is not
   // valid for augmentation
@@ -32,13 +35,10 @@ export const isEligibleForVisLayers = (vis: Vis): boolean => {
     vis.data.aggs !== undefined &&
     vis.data.aggs?.bySchemaName('metric').length > 0 &&
     vis.data.aggs?.bySchemaName('metric').length === vis.data.aggs?.aggs.length - 1;
-  let isOnlyLine = vis.params.type === 'line';
-  vis.params.seriesParams.forEach((seriesParam: { type: string }) => {
-    isOnlyLine = isOnlyLine && seriesParam.type === 'line';
-  });
-  const isValidDimensions =
-    vis.data.aggs !== undefined && vis.data.aggs?.bySchemaName('segment').length > 0;
-  return isValidXaxis && hasCorrectAggregationCount && isOnlyLine && isValidDimensions;
+  const hasOnlyLineSeries =
+    vis.params.seriesParams.every((seriesParam: { type: string }) => seriesParam.type === 'line') &&
+    vis.params.type === 'line';
+  return hasValidXaxis && hasCorrectAggregationCount && hasOnlyLineSeries;
 };
 
 /**
