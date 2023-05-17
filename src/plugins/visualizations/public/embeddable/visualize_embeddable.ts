@@ -72,6 +72,11 @@ import {
   getAugmentVisSavedObjs,
   buildPipelineFromAugmentVisSavedObjs,
   getAnyErrors,
+  cleanupStaleObjects,
+  ISavedAugmentVis,
+  VisLayer,
+  VisLayerTypes,
+  VisLayerErrorTypes,
 } from '../../../vis_augmenter/public';
 import { VisSavedObject } from '../types';
 
@@ -519,6 +524,29 @@ export class VisualizeEmbeddable
         expressionParams as Record<string, unknown>
       )) as ExprVisLayers;
       const visLayers = exprVisLayers.layers;
+
+      // TODO: remove after finished testing
+      // const visLayers = [
+      //   {
+      //     type: VisLayerTypes.PointInTimeEvents,
+      //     originPlugin: 'Anomaly Detection',
+      //     pluginResource: {
+      //       type: 'Anomaly Detectors',
+      //       id: 'test-id-1',
+      //       name: 'detector-1',
+      //       urlPath: '/test',
+      //     },
+      //     error: {
+      //       type: VisLayerErrorTypes.RESOURCE_DELETED,
+      //       message: 'detector 1 has been deleted',
+      //     },
+      //   }
+      // ] as VisLayers;
+
+      // There may be some stale saved objs if any plugin resources have been deleted since last time
+      // data was fetched from them via the expression functions. This will collect and delete them.
+      cleanupStaleObjects(augmentVisSavedObjs, visLayers, this.savedAugmentVisLoader);
+
       const err = getAnyErrors(visLayers, this.vis.title);
       // This is only true when one or more VisLayers has an error
       if (err !== undefined) {
