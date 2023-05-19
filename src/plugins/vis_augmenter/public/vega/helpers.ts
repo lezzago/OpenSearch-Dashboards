@@ -451,7 +451,8 @@ export const augmentEventChartSpec = (
     // align all of the charts correctly
     newConfig.axisY = {
       // We need minExtent and maxExtent to be the same. We cannot calculate these on-the-fly
-      // so we need to force a static value.
+      // so we need to force a static value. We choose 40 as a good middleground for sufficient
+      // axis space without taking up too much actual chart space.
       minExtent: 40,
       maxExtent: 40,
       offset: 0,
