@@ -73,6 +73,7 @@ import {
   buildPipelineFromAugmentVisSavedObjs,
   getAnyErrors,
   VisLayerErrorTypes,
+  AugmentVisContext,
 } from '../../../vis_augmenter/public';
 import { VisSavedObject } from '../types';
 import {
@@ -361,7 +362,7 @@ export class VisualizeEmbeddable
           } else if (triggerId === VIS_EVENT_TO_TRIGGER.externalAction) {
             context = {
               savedObjectId: this.vis.id,
-            };
+            } as AugmentVisContext;
           } else {
             context = {
               embeddable: this,

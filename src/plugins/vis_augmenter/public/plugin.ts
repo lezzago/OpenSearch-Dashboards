@@ -20,6 +20,7 @@ import {
 import { EmbeddableStart } from '../../embeddable/public';
 import { DataPublicPluginStart } from '../../data/public';
 import { VisualizationsStart } from '../../visualizations/public';
+import { VIEW_EVENTS_FLYOUT_STATE, setFlyoutState } from './view_events_flyout';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface VisAugmenterSetup {}
@@ -61,6 +62,7 @@ export class VisAugmenterPlugin
     setQueryService(data.query);
     setVisualizations(visualizations);
     setCore(core);
+    setFlyoutState(VIEW_EVENTS_FLYOUT_STATE.CLOSED);
 
     registerTriggersAndActions(core);
 

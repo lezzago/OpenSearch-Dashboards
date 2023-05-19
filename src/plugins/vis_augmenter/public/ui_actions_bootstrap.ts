@@ -10,10 +10,13 @@ import {
   OPEN_EVENTS_FLYOUT_ACTION,
   VIEW_EVENTS_OPTION_ACTION,
 } from './view_events_flyout';
-import { AugmentVisContext, openEventsFlyoutTrigger } from './view_events_flyout/triggers';
 import { externalActionTrigger, EXTERNAL_ACTION_TRIGGER } from '../../ui_actions/public';
 import { CONTEXT_MENU_TRIGGER, EmbeddableContext } from '../../embeddable/public';
 import { getUiActions } from './services';
+
+export interface AugmentVisContext {
+  savedObjectId: string;
+}
 
 // Overriding the mappings defined in UIActions plugin so that
 // the new trigger and action definitions resolve.

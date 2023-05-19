@@ -6,8 +6,9 @@
 import { i18n } from '@osd/i18n';
 import { CoreStart } from 'opensearch-dashboards/public';
 import { Action, IncompatibleActionError } from '../../../../ui_actions/public';
-import { AugmentVisContext } from '../triggers';
+import { AugmentVisContext } from '../../ui_actions_bootstrap';
 import { openViewEventsFlyout } from './open_events_flyout';
+import { VIEW_EVENTS_FLYOUT_STATE, getFlyoutState } from '../flyout_state';
 
 export const OPEN_EVENTS_FLYOUT_ACTION = 'OPEN_EVENTS_FLYOUT_ACTION';
 
@@ -45,9 +46,16 @@ export class OpenEventsFlyoutAction implements Action<AugmentVisContext> {
     if (!(await this.isCompatible({ savedObjectId }))) {
       throw new IncompatibleActionError();
     }
-    openViewEventsFlyout({
-      core: this.core,
-      savedObjectId,
-    });
+
+    // This action may get triggered even when the flyout is already open (e.g.,
+    // clicking on an annotation point within a chart displayed in the flyout).
+    // In such case, we want to ignore it such that users can't keep endlessly
+    // re-opening it.
+    if (getFlyoutState() === VIEW_EVENTS_FLYOUT_STATE.CLOSED) {
+      openViewEventsFlyout({
+        core: this.core,
+        savedObjectId,
+      });
+    }
   }
 }
