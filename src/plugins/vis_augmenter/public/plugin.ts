@@ -6,7 +6,7 @@
 import { ExpressionsSetup } from '../../expressions/public';
 import { PluginInitializerContext, CoreSetup, CoreStart, Plugin } from '../../../core/public';
 import { visLayers } from './expressions';
-import { setSavedAugmentVisLoader } from './services';
+import { setSavedAugmentVisLoader, setUISettings } from './services';
 import { createSavedAugmentVisLoader, SavedAugmentVisLoader } from './saved_augment_vis';
 import { registerTriggersAndActions } from './ui_actions_bootstrap';
 import { UiActionsStart } from '../../ui_actions/public';
@@ -57,6 +57,7 @@ export class VisAugmenterPlugin
     core: CoreStart,
     { uiActions, embeddable, data, visualizations }: VisAugmenterStartDeps
   ): VisAugmenterStart {
+    setUISettings(core.uiSettings);
     setUiActions(uiActions);
     setEmbeddable(embeddable);
     setQueryService(data.query);
