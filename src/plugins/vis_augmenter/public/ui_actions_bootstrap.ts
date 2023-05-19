@@ -11,7 +11,7 @@ import {
   VIEW_EVENTS_OPTION_ACTION,
 } from './view_events_flyout';
 import { AugmentVisContext, openEventsFlyoutTrigger } from './view_events_flyout/triggers';
-import { OPEN_EVENTS_FLYOUT_TRIGGER } from '../../ui_actions/public';
+import { externalActionTrigger, EXTERNAL_ACTION_TRIGGER } from '../../ui_actions/public';
 import { CONTEXT_MENU_TRIGGER, EmbeddableContext } from '../../embeddable/public';
 import { getUiActions } from './services';
 
@@ -20,7 +20,7 @@ import { getUiActions } from './services';
 // This is a common pattern among internal Dashboards plugins.
 declare module '../../ui_actions/public' {
   export interface TriggerContextMapping {
-    [OPEN_EVENTS_FLYOUT_TRIGGER]: AugmentVisContext;
+    [EXTERNAL_ACTION_TRIGGER]: AugmentVisContext;
   }
 
   export interface ActionContextMapping {
@@ -35,9 +35,10 @@ export const registerTriggersAndActions = (core: CoreStart) => {
 
   getUiActions().registerAction(openEventsFlyoutAction);
   getUiActions().registerAction(viewEventsOptionAction);
-  getUiActions().registerTrigger(openEventsFlyoutTrigger);
+  getUiActions().registerTrigger(externalActionTrigger);
+
   // Opening View Events flyout from the chart
-  getUiActions().addTriggerAction(OPEN_EVENTS_FLYOUT_TRIGGER, openEventsFlyoutAction);
+  getUiActions().addTriggerAction(EXTERNAL_ACTION_TRIGGER, openEventsFlyoutAction);
   // Opening View Events flyout from the context menu
   getUiActions().addTriggerAction(CONTEXT_MENU_TRIGGER, viewEventsOptionAction);
 };

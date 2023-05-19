@@ -95,6 +95,7 @@ export const createLineVegaSpecFn = (
       spec = addPointInTimeEventsLayersToSpec(table, dimensions, spec);
       // @ts-ignore
       spec.config = enableVisLayersInSpecConfig(spec, pointInTimeEventsVisLayers);
+      // @ts-ignore
       spec.config = addVisEventSignalsToSpecConfig(spec);
     }
 

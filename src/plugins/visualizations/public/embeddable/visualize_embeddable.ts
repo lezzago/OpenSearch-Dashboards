@@ -358,6 +358,10 @@ export class VisualizeEmbeddable
               timeFieldName: this.vis.data.indexPattern?.timeFieldName!,
               ...event.data,
             };
+          } else if (triggerId === VIS_EVENT_TO_TRIGGER.externalAction) {
+            context = {
+              savedObjectId: this.vis.id,
+            };
           } else {
             context = {
               embeddable: this,

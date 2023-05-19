@@ -338,6 +338,7 @@ export const addPointInTimeEventsLayersToSpec = (
     height: EVENT_TIMELINE_HEIGHT,
     mark: {
       type: 'point',
+      shape: EVENT_MARK_SHAPE,
       fill: EVENT_COLOR,
       stroke: EVENT_COLOR,
       strokeOpacity: 1,

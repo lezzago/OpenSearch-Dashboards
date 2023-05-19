@@ -30,7 +30,6 @@
 
 import $ from 'jquery';
 import moment from 'moment';
-import { get } from 'lodash';
 import dateMath from '@elastic/datemath';
 import { vega, vegaLite, vegaExpressionInterpreter } from '../lib/vega';
 import { Utils } from '../data_model/utils';
@@ -39,9 +38,8 @@ import { i18n } from '@osd/i18n';
 import { TooltipHandler } from './vega_tooltip';
 import { opensearchFilters } from '../../../data/public';
 
-import { getEnableExternalUrls, getData, getUiActions } from '../services';
+import { getEnableExternalUrls, getData } from '../services';
 import { extractIndexPatternsFromSpec } from '../lib/extract_index_pattern';
-import { OPEN_EVENTS_FLYOUT_TRIGGER } from '../../../ui_actions/public';
 
 vega.scheme('euiPaletteColorBlind', euiPaletteColorBlind());
 
@@ -301,15 +299,6 @@ export class VegaBaseView {
         // Vega bug workaround - need to destroy tooltip by hand
         this._addDestroyHandler(() => tthandler.hideTooltip());
       }
-
-      // TODO: The filtering on the item ('annotation datapoint' vs. regular datapoint, etc.) will be handled in
-      // https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3317
-      // Right now, clicking anywhere on the chart will trigger the flyout to open.
-      /* eslint-disable */
-      view.addEventListener('click', function (event, item) {
-        const { savedObjectId } = get(view, '_opensearchDashboardsView._visInput', {});
-        getUiActions().getTrigger(OPEN_EVENTS_FLYOUT_TRIGGER).exec({ savedObjectId });
-      });
 
       return view.runAsync(); // Allows callers to await rendering
     }
