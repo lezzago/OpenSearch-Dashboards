@@ -14,65 +14,21 @@ import {
   getMockAugmentVisSavedObjectClient,
   generateAugmentVisSavedObject,
   ISavedAugmentVis,
-  generateVisLayer,
   VisLayerTypes,
   VisLayerExpressionFn,
 } from '../';
-import { AggConfigs, AggTypesRegistryStart, IndexPattern } from '../../../data/common';
-import { mockAggTypesRegistry } from '../../../data/common/search/aggs/test_helpers';
+import { AggConfigs } from '../../../data/common';
+import {
+  STUB_INDEX_PATTERN_WITH_FIELDS,
+  TYPES_REGISTRY,
+  VALID_AGGS,
+  VALID_CONFIG_STATES,
+  VALID_VIS,
+  createVisLayer,
+} from '../mocks';
 
 describe('utils', () => {
   describe('isEligibleForVisLayers', () => {
-    const validConfigStates = [
-      {
-        enabled: true,
-        type: 'max',
-        params: {},
-        schema: 'metric',
-      },
-      {
-        enabled: true,
-        type: 'date_histogram',
-        params: {},
-        schema: 'segment',
-      },
-    ];
-    const stubIndexPatternWithFields = {
-      id: '1234',
-      title: 'logstash-*',
-      fields: [
-        {
-          name: 'response',
-          type: 'number',
-          esTypes: ['integer'],
-          aggregatable: true,
-          filterable: true,
-          searchable: true,
-        },
-      ],
-    };
-    const typesRegistry: AggTypesRegistryStart = mockAggTypesRegistry();
-    const aggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, validConfigStates, {
-      typesRegistry,
-    });
-    const validVis = ({
-      params: {
-        type: 'line',
-        seriesParams: [
-          {
-            type: 'line',
-          },
-        ],
-        categoryAxes: [
-          {
-            position: 'bottom',
-          },
-        ],
-      },
-      data: {
-        aggs,
-      },
-    } as unknown) as Vis;
     it('vis is ineligible with invalid non-line type', async () => {
       const vis = ({
         params: {
@@ -85,7 +41,7 @@ describe('utils', () => {
           ],
         },
         data: {
-          aggs,
+          aggs: VALID_AGGS,
         },
       } as unknown) as Vis;
       expect(isEligibleForVisLayers(vis)).toEqual(false);
@@ -103,13 +59,9 @@ describe('utils', () => {
           params: {},
         },
       ];
-      const invalidAggs = new AggConfigs(
-        stubIndexPatternWithFields as IndexPattern,
-        invalidConfigStates,
-        {
-          typesRegistry,
-        }
-      );
+      const invalidAggs = new AggConfigs(STUB_INDEX_PATTERN_WITH_FIELDS, invalidConfigStates, {
+        typesRegistry: TYPES_REGISTRY,
+      });
       const vis = ({
         params: {
           type: 'line',
@@ -123,7 +75,7 @@ describe('utils', () => {
     });
     it('vis is ineligible with invalid aggs counts', async () => {
       const invalidConfigStates = [
-        ...validConfigStates,
+        ...VALID_CONFIG_STATES,
         {
           enabled: true,
           type: 'dot',
@@ -131,13 +83,9 @@ describe('utils', () => {
           schema: 'radius',
         },
       ];
-      const invalidAggs = new AggConfigs(
-        stubIndexPatternWithFields as IndexPattern,
-        invalidConfigStates,
-        {
-          typesRegistry,
-        }
-      );
+      const invalidAggs = new AggConfigs(STUB_INDEX_PATTERN_WITH_FIELDS, invalidConfigStates, {
+        typesRegistry: TYPES_REGISTRY,
+      });
       const vis = ({
         params: {
           type: 'line',
@@ -157,13 +105,9 @@ describe('utils', () => {
           params: {},
         },
       ];
-      const invalidAggs = new AggConfigs(
-        stubIndexPatternWithFields as IndexPattern,
-        invalidConfigStates,
-        {
-          typesRegistry,
-        }
-      );
+      const invalidAggs = new AggConfigs(STUB_INDEX_PATTERN_WITH_FIELDS, invalidConfigStates, {
+        typesRegistry: TYPES_REGISTRY,
+      });
       const vis = ({
         params: {
           type: 'line',
@@ -191,7 +135,7 @@ describe('utils', () => {
           ],
         },
         data: {
-          aggs,
+          aggs: VALID_AGGS,
         },
       } as unknown) as Vis;
       expect(isEligibleForVisLayers(vis)).toEqual(false);
@@ -215,7 +159,7 @@ describe('utils', () => {
           ],
         },
         data: {
-          aggs,
+          aggs: VALID_AGGS,
         },
       } as unknown) as Vis;
       expect(isEligibleForVisLayers(vis)).toEqual(false);
@@ -235,8 +179,8 @@ describe('utils', () => {
           schema: 'metric',
         },
       ];
-      const badAggs = new AggConfigs(stubIndexPatternWithFields as IndexPattern, badConfigStates, {
-        typesRegistry,
+      const badAggs = new AggConfigs(STUB_INDEX_PATTERN_WITH_FIELDS, badConfigStates, {
+        typesRegistry: TYPES_REGISTRY,
       });
       const invalidVis = ({
         params: {
@@ -274,13 +218,13 @@ describe('utils', () => {
           ],
         },
         data: {
-          aggs,
+          aggs: VALID_AGGS,
         },
       } as unknown) as Vis;
       expect(isEligibleForVisLayers(invalidVis)).toEqual(false);
     });
     it('vis is eligible with valid type', async () => {
-      expect(isEligibleForVisLayers(validVis)).toEqual(true);
+      expect(isEligibleForVisLayers(VALID_VIS)).toEqual(true);
     });
   });
 
@@ -407,14 +351,14 @@ describe('utils', () => {
   });
 
   describe('getAnyErrors', () => {
-    const noErrorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
-    const noErrorLayer2 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
-    const errorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'uh-oh!', {
+    const noErrorLayer1 = createVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    const noErrorLayer2 = createVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    const errorLayer1 = createVisLayer(VisLayerTypes.PointInTimeEvents, true, 'uh-oh!', {
       type: 'resource-type-1',
       id: '1234',
       name: 'resource-1',
     });
-    const errorLayer2 = generateVisLayer(
+    const errorLayer2 = createVisLayer(
       VisLayerTypes.PointInTimeEvents,
       true,
       'oh no something terrible has happened :(',
@@ -424,7 +368,7 @@ describe('utils', () => {
         name: 'resource-2',
       }
     );
-    const errorLayer3 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'oops!', {
+    const errorLayer3 = createVisLayer(VisLayerTypes.PointInTimeEvents, true, 'oops!', {
       type: 'resource-type-1',
       id: 'abcd',
       name: 'resource-3',
