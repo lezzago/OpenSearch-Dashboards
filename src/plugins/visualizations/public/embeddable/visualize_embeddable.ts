@@ -72,12 +72,14 @@ import {
   getAugmentVisSavedObjs,
   buildPipelineFromAugmentVisSavedObjs,
   getAnyErrors,
-  VisLayerErrorTypes,
   AugmentVisContext,
   PointInTimeEventsVisLayer,
+  VisAugmenterEmbeddableConfig,
+  cleanupStaleObjects,
+  ISavedAugmentVis,
   VisLayer,
   VisLayerTypes,
-  VisAugmenterEmbeddableConfig,
+  VisLayerErrorTypes,
 } from '../../../vis_augmenter/public';
 import { VisSavedObject } from '../types';
 
@@ -420,7 +422,7 @@ export class VisualizeEmbeddable
     const abortController = this.abortController;
 
     // By waiting for this to complete, this.visLayers will be populated
-    await this.populateVisLayers();
+    await this.populateVisLayers(expressionParams, abortController);
 
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
@@ -503,8 +505,11 @@ export class VisualizeEmbeddable
    * Note this fn is public so we can fetch vislayers on demand when needed,
    * e.g., generating other vis embeddables in the view events flyout.
    */
-  public async populateVisLayers(): Promise<void> {
-    const visLayers = await this.fetchVisLayers();
+  public async populateVisLayers(
+    expressionParams: IExpressionLoaderParams,
+    abortController: AbortController
+  ): Promise<void> {
+    const visLayers = await this.fetchVisLayers(expressionParams, abortController);
     this.visLayers =
       this.visAugmenterConfig?.visLayerResourceIds === undefined
         ? visLayers
@@ -552,6 +557,10 @@ export class VisualizeEmbeddable
           expressionParams as Record<string, unknown>
         )) as ExprVisLayers;
         const visLayers = exprVisLayers.layers;
+        // There may be some stale saved objs if any plugin resources have been deleted since last time
+        // data was fetched from them via the expression functions. This will collect and delete them.
+        cleanupStaleObjects(augmentVisSavedObjs, visLayers, this.savedAugmentVisLoader);
+
         const err = getAnyErrors(visLayers, this.vis.title);
         // This is only true when one or more VisLayers has an error
         if (err !== undefined) {

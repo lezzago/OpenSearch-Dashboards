@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Vis } from '../../../visualizations/public';
+import { Vis, createSavedVisLoader } from '../../../visualizations/public';
 import {
   buildPipelineFromAugmentVisSavedObjs,
   getAugmentVisSavedObjs,
@@ -16,6 +16,7 @@ import {
   ISavedAugmentVis,
   VisLayerTypes,
   VisLayerExpressionFn,
+  cleanupStaleObjects,
 } from '../';
 import { AggConfigs, AggTypesRegistryStart, IndexPattern } from '../../../data/common';
 import {
@@ -427,6 +428,45 @@ describe('utils', () => {
       const err = getAnyErrors([noErrorLayer1, errorLayer1], 'test-vis-title');
       expect(err).not.toEqual(undefined);
       expect(err?.stack).toStrictEqual(`-----resource-type-1-----\nID: 1234\nMessage: "uh-oh!"`);
+    });
+  });
+
+  describe('cleanupStaleObjects', () => {
+    // const noErrorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    // const noErrorLayer2 = generateVisLayer(VisLayerTypes.PointInTimeEvents, false);
+    // const errorLayer1 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'uh-oh!', {
+    //   type: 'resource-type-1',
+    //   id: '1234',
+    //   name: 'resource-1',
+    // });
+    // const errorLayer2 = generateVisLayer(
+    //   VisLayerTypes.PointInTimeEvents,
+    //   true,
+    //   'oh no something terrible has happened :(',
+    //   {
+    //     type: 'resource-type-2',
+    //     id: '5678',
+    //     name: 'resource-2',
+    //   }
+    // );
+    // const errorLayer3 = generateVisLayer(VisLayerTypes.PointInTimeEvents, true, 'oops!', {
+    //   type: 'resource-type-1',
+    //   id: 'abcd',
+    //   name: 'resource-3',
+    // });
+
+    it('no stale VisLayers - no deletion happens', async () => {
+      const mockVisDeleteFn = jest.fn();
+      const mockVisLoader = createSavedVisLoader({
+        savedObjectsClient: {
+          delete: jest.fn(),
+        },
+        savedAugmentVisLoader: {},
+      } as any);
+
+      cleanupStaleObjects([], [], mockVisLoader);
+
+      expect(mockVisDeleteFn).toHaveBeenCalledTimes(0);
     });
   });
 });

@@ -87,7 +87,7 @@ export async function fetchVisEmbeddable(
     });
 
     // By waiting for this to complete, embeddable.visLayers will be populated
-    await embeddable.populateVisLayers();
+    await embeddable.populateVisLayers(expressionParams, abortController);
 
     setVisEmbeddable(embeddable);
   } catch (err: any) {
