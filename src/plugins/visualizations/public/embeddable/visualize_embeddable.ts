@@ -422,7 +422,7 @@ export class VisualizeEmbeddable
     const abortController = this.abortController;
 
     // By waiting for this to complete, this.visLayers will be populated
-    await this.populateVisLayers(expressionParams, abortController);
+    await this.populateVisLayers();
 
     this.expression = await buildPipeline(this.vis, {
       timefilter: this.timefilter,
@@ -505,11 +505,8 @@ export class VisualizeEmbeddable
    * Note this fn is public so we can fetch vislayers on demand when needed,
    * e.g., generating other vis embeddables in the view events flyout.
    */
-  public async populateVisLayers(
-    expressionParams: IExpressionLoaderParams,
-    abortController: AbortController
-  ): Promise<void> {
-    const visLayers = await this.fetchVisLayers(expressionParams, abortController);
+  public async populateVisLayers(): Promise<void> {
+    const visLayers = await this.fetchVisLayers();
     this.visLayers =
       this.visAugmenterConfig?.visLayerResourceIds === undefined
         ? visLayers
@@ -528,20 +525,23 @@ export class VisualizeEmbeddable
    * is used below. For more details, see
    * https://github.com/opensearch-project/OpenSearch-Dashboards/issues/3268
    */
-  fetchVisLayers = async (
-    expressionParams: IExpressionLoaderParams,
-    abortController: AbortController
-  ): Promise<VisLayers> => {
+  fetchVisLayers = async (): Promise<VisLayers> => {
     try {
+      const expressionParams: IExpressionLoaderParams = {
+        searchContext: {
+          timeRange: this.timeRange,
+          query: this.input.query,
+          filters: this.input.filters,
+        },
+        uiState: this.vis.uiState,
+        inspectorAdapters: this.inspectorAdapters,
+      };
       const augmentVisSavedObjs = await getAugmentVisSavedObjs(
         this.vis.id,
         this.savedAugmentVisLoader
       );
-      if (
-        !isEmpty(augmentVisSavedObjs) &&
-        !abortController.signal.aborted &&
-        isEligibleForVisLayers(this.vis)
-      ) {
+      const aborted = get(this, 'abortController.signal.aborted', false) as boolean;
+      if (!isEmpty(augmentVisSavedObjs) && !aborted && isEligibleForVisLayers(this.vis)) {
         const visLayersPipeline = buildPipelineFromAugmentVisSavedObjs(augmentVisSavedObjs);
         // The initial input for the pipeline will just be an empty arr of VisLayers. As plugin
         // expression functions are ran, they will incrementally append their generated VisLayers to it.

@@ -68,6 +68,7 @@ export class VisAugmenterPlugin
     registerTriggersAndActions(core);
 
     const savedAugmentVisLoader = createSavedAugmentVisLoader({
+      config: core.uiSettings,
       savedObjectsClient: core.savedObjects.client,
       indexPatterns: data.indexPatterns,
       search: data.search,

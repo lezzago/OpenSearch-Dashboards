@@ -33,7 +33,7 @@ export class ViewEventsOptionAction implements Action<EmbeddableContext> {
   }
 
   public async isCompatible({ embeddable }: EmbeddableContext) {
-    if (!(embeddable instanceof VisualizeEmbeddable)) return false;
+    if ((embeddable as VisualizeEmbeddable).visLayers === undefined) return false;
     return isEligibleForVisLayers((embeddable as VisualizeEmbeddable).vis);
   }
 

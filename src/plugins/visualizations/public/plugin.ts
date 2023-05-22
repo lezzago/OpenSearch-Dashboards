@@ -183,6 +183,7 @@ export class VisualizationsPlugin
   ): VisualizationsStart {
     const types = this.types.start();
     const savedAugmentVisLoader = createSavedAugmentVisLoader({
+      config: core.uiSettings,
       savedObjectsClient: core.savedObjects.client,
       indexPatterns: data.indexPatterns,
       search: data.search,

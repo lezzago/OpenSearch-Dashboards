@@ -4,23 +4,32 @@
  */
 
 import { get, isEmpty } from 'lodash';
-import { IUiSettingsClient } from 'opensearch-dashboards/public';
+import { IUiSettingsClient, SavedObjectsClientContract } from 'opensearch-dashboards/public';
 import {
   SavedObjectLoader,
   SavedObjectOpenSearchDashboardsServices,
 } from '../../../saved_objects/public';
 import { createSavedAugmentVisClass } from './_saved_augment_vis';
 import { VisLayerTypes } from '../types';
-import { getUISettings } from '../services';
 import { AugmentVisSavedObjectAttributes, PLUGIN_AUGMENTATION_ENABLE_SETTING } from '../../common';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SavedObjectOpenSearchDashboardsServicesWithAugmentVis
-  extends SavedObjectOpenSearchDashboardsServices {}
+  extends SavedObjectOpenSearchDashboardsServices {
+  config: IUiSettingsClient;
+}
 export type SavedAugmentVisLoader = ReturnType<typeof createSavedAugmentVisLoader>;
 
 export class SavedObjectLoaderAugmentVis extends SavedObjectLoader {
-  private readonly config: IUiSettingsClient = getUISettings();
+  private config: IUiSettingsClient;
+
+  constructor(
+    settingsClient: IUiSettingsClient,
+    SavedObjectClass: any,
+    savedObjectsClient: SavedObjectsClientContract
+  ) {
+    super(SavedObjectClass, savedObjectsClient);
+    this.config = settingsClient;
+  }
 
   mapHitSource = (source: AugmentVisSavedObjectAttributes, id: string) => {
     source.id = id;
@@ -114,8 +123,8 @@ export class SavedObjectLoaderAugmentVis extends SavedObjectLoader {
 export function createSavedAugmentVisLoader(
   services: SavedObjectOpenSearchDashboardsServicesWithAugmentVis
 ) {
-  const { savedObjectsClient } = services;
+  const { config, savedObjectsClient } = services;
 
   const SavedAugmentVis = createSavedAugmentVisClass(services);
-  return new SavedObjectLoaderAugmentVis(SavedAugmentVis, savedObjectsClient);
+  return new SavedObjectLoaderAugmentVis(config, SavedAugmentVis, savedObjectsClient);
 }
