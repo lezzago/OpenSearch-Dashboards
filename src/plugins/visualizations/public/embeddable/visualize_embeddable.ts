@@ -57,7 +57,7 @@ import {
 } from '../../../expressions/public';
 import { buildPipeline } from '../legacy/build_pipeline';
 import { Vis, SerializedVis } from '../vis';
-import { getExpressions, getNotifications, getUiActions } from '../services';
+import { getExpressions, getNotifications, getUiActions, getUISettings } from '../services';
 import { VIS_EVENT_TO_TRIGGER } from './events';
 import { VisualizeEmbeddableFactoryDeps } from './visualize_embeddable_factory';
 import { TriggerId } from '../../../ui_actions/public';
@@ -82,6 +82,7 @@ import {
   VisLayerErrorTypes,
 } from '../../../vis_augmenter/public';
 import { VisSavedObject } from '../types';
+import { IUiSettingsClient } from 'opensearch-dashboards/public';
 
 const getKeys = <T extends {}>(o: T): Array<keyof T> => Object.keys(o) as Array<keyof T>;
 
@@ -146,6 +147,7 @@ export class VisualizeEmbeddable
   >;
   private savedVisualizationsLoader?: SavedVisualizationsLoader;
   private savedAugmentVisLoader?: SavedAugmentVisLoader;
+  private uiSettings?: IUiSettingsClient;
   public visLayers?: VisLayer[];
   private visAugmenterConfig?: VisAugmenterEmbeddableConfig;
 
@@ -183,6 +185,7 @@ export class VisualizeEmbeddable
     this.attributeService = attributeService;
     this.savedVisualizationsLoader = savedVisualizationsLoader;
     this.savedAugmentVisLoader = savedAugmentVisLoader;
+    this.uiSettings = getUISettings();
     this.visAugmenterConfig = initialInput.visAugmenterConfig;
     this.autoRefreshFetchSubscription = timefilter
       .getAutoRefreshFetch$()
@@ -536,9 +539,13 @@ export class VisualizeEmbeddable
         uiState: this.vis.uiState,
         inspectorAdapters: this.inspectorAdapters,
       };
+      if (this.uiSettings === undefined) {
+        this.uiSettings = getUISettings();
+      }
       const augmentVisSavedObjs = await getAugmentVisSavedObjs(
         this.vis.id,
-        this.savedAugmentVisLoader
+        this.savedAugmentVisLoader,
+        this.uiSettings
       );
       const aborted = get(this, 'abortController.signal.aborted', false) as boolean;
       if (!isEmpty(augmentVisSavedObjs) && !aborted && isEligibleForVisLayers(this.vis)) {

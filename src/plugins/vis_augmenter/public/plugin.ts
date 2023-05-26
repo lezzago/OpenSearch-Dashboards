@@ -18,7 +18,7 @@ import {
   setCore,
 } from './services';
 import { EmbeddableStart } from '../../embeddable/public';
-import { DataPublicPluginStart } from '../../data/public';
+import { DataPublicPluginSetup, DataPublicPluginStart } from '../../data/public';
 import { VisualizationsStart } from '../../visualizations/public';
 import { VIEW_EVENTS_FLYOUT_STATE, setFlyoutState } from './view_events_flyout';
 
@@ -31,6 +31,7 @@ export interface VisAugmenterStart {
 
 export interface VisAugmenterSetupDeps {
   expressions: ExpressionsSetup;
+  data: DataPublicPluginSetup;
 }
 
 export interface VisAugmenterStartDeps {
@@ -47,8 +48,10 @@ export class VisAugmenterPlugin
 
   public setup(
     core: CoreSetup<VisAugmenterStartDeps, VisAugmenterStart>,
-    { expressions }: VisAugmenterSetupDeps
+    { expressions, data }: VisAugmenterSetupDeps
   ): VisAugmenterSetup {
+    console.log('vis_augmenter setup');
+    setUISettings(core.uiSettings);
     expressions.registerType(visLayers);
     return {};
   }
@@ -57,16 +60,7 @@ export class VisAugmenterPlugin
     core: CoreStart,
     { uiActions, embeddable, data, visualizations }: VisAugmenterStartDeps
   ): VisAugmenterStart {
-    setUISettings(core.uiSettings);
-    setUiActions(uiActions);
-    setEmbeddable(embeddable);
-    setQueryService(data.query);
-    setVisualizations(visualizations);
-    setCore(core);
-    setFlyoutState(VIEW_EVENTS_FLYOUT_STATE.CLOSED);
-
-    registerTriggersAndActions(core);
-
+    console.log('hi2');
     const savedAugmentVisLoader = createSavedAugmentVisLoader({
       config: core.uiSettings,
       savedObjectsClient: core.savedObjects.client,
@@ -76,6 +70,15 @@ export class VisAugmenterPlugin
       overlays: core.overlays,
     });
     setSavedAugmentVisLoader(savedAugmentVisLoader);
+    setUISettings(core.uiSettings);
+    setUiActions(uiActions);
+    setEmbeddable(embeddable);
+    setQueryService(data.query);
+    setVisualizations(visualizations);
+    setCore(core);
+    setFlyoutState(VIEW_EVENTS_FLYOUT_STATE.CLOSED);
+
+    registerTriggersAndActions(core);
     return { savedAugmentVisLoader };
   }
 

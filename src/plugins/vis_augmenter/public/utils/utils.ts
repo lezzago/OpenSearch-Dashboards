@@ -22,6 +22,7 @@ import {
 } from '../';
 import { PLUGIN_AUGMENTATION_ENABLE_SETTING } from '../../common/constants';
 import { getUISettings } from '../services';
+import { IUiSettingsClient } from 'opensearch-dashboards/public';
 
 export const isEligibleForVisLayers = (vis: Vis): boolean => {
   // Only support date histogram and ensure there is only 1 x-axis and it has to be on the bottom.
@@ -54,16 +55,18 @@ export const isEligibleForVisLayers = (vis: Vis): boolean => {
  */
 export const getAugmentVisSavedObjs = async (
   visId: string | undefined,
-  loader: SavedAugmentVisLoader | undefined
+  loader: SavedAugmentVisLoader | undefined,
+  uiSettings: IUiSettingsClient | undefined
 ): Promise<ISavedAugmentVis[]> => {
-  const config = getUISettings();
-  const isAugmentationEnabled = config.get(PLUGIN_AUGMENTATION_ENABLE_SETTING);
-  if (!isAugmentationEnabled) {
-    throw new Error(
-      'Visualization augmentation is disabled, please enable visualization:enablePluginAugmentation.'
-    );
-  }
+  // const uiSettings = getUISettings();
   try {
+    const isAugmentationEnabled = uiSettings.get(PLUGIN_AUGMENTATION_ENABLE_SETTING);
+    if (!isAugmentationEnabled) {
+      throw new Error(
+        'Visualization augmentation is disabled, please enable visualization:enablePluginAugmentation.'
+      );
+    }
+
     const allSavedObjects = await getAllAugmentVisSavedObjs(loader);
     return allSavedObjects.filter((hit: ISavedAugmentVis) => hit.visId === visId);
   } catch (e) {

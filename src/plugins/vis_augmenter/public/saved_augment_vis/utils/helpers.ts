@@ -4,28 +4,33 @@
  */
 
 import { get } from 'lodash';
+import { IUiSettingsClient } from 'opensearch-dashboards/public';
 import { getSavedAugmentVisLoader, getUISettings } from '../../services';
 import { ISavedAugmentVis } from '../types';
 import {
   PLUGIN_AUGMENTATION_ENABLE_SETTING,
   PLUGIN_AUGMENTATION_MAX_OBJECTS_SETTING,
 } from '../../../common/constants';
+import { SavedObjectLoaderAugmentVis } from '../saved_augment_vis';
 
 /**
  * Create an augment vis saved object given an object that
  * implements the ISavedAugmentVis interface
  */
-export const createAugmentVisSavedObject = async (AugmentVis: ISavedAugmentVis): Promise<any> => {
-  const loader = getSavedAugmentVisLoader();
-  const config = getUISettings();
-
-  const isAugmentationEnabled = config.get(PLUGIN_AUGMENTATION_ENABLE_SETTING);
+export const createAugmentVisSavedObject = async (
+  AugmentVis: ISavedAugmentVis,
+  loader: SavedObjectLoaderAugmentVis,
+  uiSettings: IUiSettingsClient
+): Promise<any> => {
+  // const loader = getSavedAugmentVisLoader();
+  // const uiSettings = getUISettings();
+  const isAugmentationEnabled = uiSettings.get(PLUGIN_AUGMENTATION_ENABLE_SETTING);
   if (!isAugmentationEnabled) {
     throw new Error(
       'Visualization augmentation is disabled, please enable visualization:enablePluginAugmentation.'
     );
   }
-  const maxAssociatedCount = config.get(PLUGIN_AUGMENTATION_MAX_OBJECTS_SETTING);
+  const maxAssociatedCount = uiSettings.get(PLUGIN_AUGMENTATION_MAX_OBJECTS_SETTING);
 
   await loader.findAll().then(async (resp) => {
     if (resp !== undefined) {

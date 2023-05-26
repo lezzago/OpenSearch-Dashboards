@@ -32,7 +32,7 @@ export function EventVisItem(props: Props) {
         >
           <EuiFlexGroup alignItems="center">
             <EuiFlexItem>
-              <EuiLink href={`${baseUrl.prepend(`${urlPath}`)}`}>{name}</EuiLink>
+              <EuiLink href={`${baseUrl.prepend(`${urlPath}`)}`} target="_blank" external={true}>{name}</EuiLink>
             </EuiFlexItem>
             <EventVisItemIcon visLayer={props.item.visLayer} />
           </EuiFlexGroup>
