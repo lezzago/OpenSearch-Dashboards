@@ -39,6 +39,20 @@ export interface DataSourceMeta {
   sessionId?: string;
   /** Optional supportsTimeFilter determines if a time filter is needed */
   supportsTimeFilter?: boolean;
+  /** Optional AWS account id, used by external datasets such as CloudWatch */
+  accountId?: string;
+  /** Optional AWS region for external datasets such as CloudWatch (chosen in the UI); the
+   * server builds a per-region client from this. Falls back to the server env when absent. */
+  region?: string;
+  /** Optional CloudWatch log groups that are part of a CloudWatch dataset (chosen in the dataset picker) */
+  logGroups?: string[];
+  /** Optional CloudWatch log-group wildcard patterns (e.g. "/aws/lambda/*"); resolved to concrete
+   * log-group names server-side before querying */
+  logGroupPatterns?: string[];
+  /** Optional CloudWatch log streams to restrict a CloudWatch query to. Empty/absent = all
+   * streams. Applied best-effort across the selected log groups via a `filter @logStream in [...]`
+   * clause injected into the Insights query server-side. */
+  logStreams?: string[];
 }
 
 export interface DataStructureCreatorProps<FetchOptions = unknown> {

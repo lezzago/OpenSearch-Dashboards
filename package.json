@@ -187,6 +187,7 @@
     "@aws-crypto/client-node": "^4.2.1",
     "@aws-crypto/sha256-js": "^5.2.0",
     "@aws-sdk/client-bedrock-runtime": "^3.995.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.995.0",
     "@aws-sdk/client-sts": "^3.995.0",
     "@aws-sdk/credential-provider-node": "^3.972.10",
     "@dagrejs/dagre": "^1.1.5",

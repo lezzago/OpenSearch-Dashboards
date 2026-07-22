@@ -101,6 +101,50 @@ Use `core.getStartServices()` in application mount handlers rather than storing 
 - **Build:** Webpack/Rspack, Babel, `@osd/optimizer`
 - **Package manager:** Yarn 1 (workspaces)
 
+## Local Dev Against the Observability Docker Stack
+
+This checkout is run **from source** against a local Docker "observability stack" OpenSearch
+cluster (not the Docker OSD — that runs separately on 5601).
+
+- **Node must be 22** (`.nvmrc` pins 22; engine requires `<23`). Run `nvm use 22` before any
+  yarn command — the machine default (v24) fails immediately.
+- **Start it** with the gitignored helper `./scripts/start-dev.sh`, which exports the env vars
+  (OpenSearch creds + CloudWatch STS creds, see below) and then runs
+  `yarn start --config config/opensearch_dashboards.dev.yml`.
+- **Config** (`config/opensearch_dashboards.dev.yml`, gitignored): OSD serves on `server.port: 5602`
+  and points at the cluster at `opensearch.hosts: https://localhost:9200` with the local admin
+  credentials (see that file), SSL `verificationMode: none`. `workspace.enabled`,
+  `data_source.enabled`, `explore.enabled`, and `query:enhancements:enabled` are on. The cluster
+  is an OpenSearch 3.x observability-stack container (from its own docker-compose, separate repo).
+- **Basepath rotates per restart.** In dev, a basepath proxy serves on 5602 and forwards to the
+  backend on 5603 with a random basepath (e.g. `/eni`, `/zea`). Find the current one by grepping
+  the log: `grep "http server running" /tmp/osd-dev.log`. Open **http://localhost:5602/<basepath>**.
+- **Discover lives inside a workspace.** Classic Discover is forwarded to the Explore **Logs
+  flavor**. The URL is `/<basepath>/w/<workspaceId>/app/explore/logs` — bare `/app/explore/logs`
+  gives "Application Not Found". The observability workspace id has been `D7w5QJ`.
+- **Bootstrap gotcha:** `yarn osd bootstrap` can fail a `single_version_dependencies` gate on the
+  external plugins under `plugins/` (`alerting-dashboards-plugin`, `dashboards-observability`).
+  Workaround: move them out of `plugins/` (they're gitignored), bootstrap, move them back.
+- Server-side changes require a full **restart** (`./scripts/start-dev.sh`); the optimizer only
+  hot-reloads browser bundles.
+
+## CloudWatch Logs PoC
+
+There is an in-progress prototype wiring a virtual **CloudWatch Logs** dataset into
+Explore/Logs, so querying it runs a CloudWatch Logs Insights query against a hardcoded AWS
+account (`245861583765`). Most code lives in the `query_enhancements` plugin (server client +
+search strategy + dataset type + pickers) plus a search-bar edit popover in the `explore` plugin.
+
+- **Source of truth for current state:** `src/plugins/query_enhancements/CLOUDWATCH_POC.md` — a
+  living tracking doc covering the architecture, key files, which CloudWatch APIs are called and
+  why (DescribeLogGroups, DescribeLogStreams, StartQuery, GetQueryResults), known gaps, and a
+  change log. **Read and update that file** when working on CloudWatch.
+- **AWS credentials:** read-only, temporary STS session tokens read from the server env
+  (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`), set in the gitignored
+  `scripts/start-dev.sh`. They expire — if `/api/enhancements/resources` or search calls 503 with
+  "security token is expired", the creds need refreshing (ask the user to paste new ones). Never
+  commit credentials.
+
 ## Code Conventions
 
 - **Filenames:** Always `snake_case` (e.g., `index_pattern.ts`, not `IndexPattern.ts`).

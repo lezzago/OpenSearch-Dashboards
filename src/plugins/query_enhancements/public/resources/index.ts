@@ -4,3 +4,4 @@
  */
 
 export { PrometheusResourceClient } from './prometheus_resource_client';
+export { CloudWatchResourceClient } from './cloudwatch_resource_client';

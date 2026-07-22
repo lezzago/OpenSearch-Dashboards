@@ -5,3 +5,4 @@
 
 export { PPLSearchInterceptor } from './ppl_search_interceptor';
 export { SQLSearchInterceptor } from './sql_search_interceptor';
+export { CloudWatchLogsSearchInterceptor } from './cloudwatch_logs_search_interceptor';

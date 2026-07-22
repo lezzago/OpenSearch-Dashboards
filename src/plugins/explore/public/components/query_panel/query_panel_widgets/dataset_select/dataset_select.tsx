@@ -76,12 +76,14 @@ export const DatasetSelectWidget = () => {
   const supportedTypes = useMemo(() => {
     if (flavorId === ExploreFlavor.Metrics) return ['PROMETHEUS'];
 
-    return (
-      services.supportedTypes || [
-        DEFAULT_DATA.SET_TYPES.INDEX,
-        DEFAULT_DATA.SET_TYPES.INDEX_PATTERN,
-      ]
-    );
+    const baseTypes = services.supportedTypes || [
+      DEFAULT_DATA.SET_TYPES.INDEX,
+      DEFAULT_DATA.SET_TYPES.INDEX_PATTERN,
+    ];
+
+    // CloudWatch PoC: expose the hardcoded CloudWatch virtual dataset in the Logs
+    // flavor picker (its own supportedAppNames still gate visibility per app).
+    return baseTypes.includes('CLOUDWATCH') ? baseTypes : [...baseTypes, 'CLOUDWATCH'];
   }, [services.supportedTypes, flavorId]);
 
   const containerRef = useRef<HTMLDivElement>(null);

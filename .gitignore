@@ -97,3 +97,6 @@ snapshots.js
 
 # git worktrees (local isolated workspaces)
 /.worktrees/
+
+# Local dev launcher — contains temporary AWS/OpenSearch credentials, do not commit
+scripts/start-dev.sh

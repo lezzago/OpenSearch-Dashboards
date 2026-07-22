@@ -26,11 +26,17 @@ import {
   SingleLineInput,
 } from '../../data/public';
 import { ConfigSchema } from '../common/config';
+import { CLOUDWATCH_LANGUAGE, DATASET } from '../common';
 import { s3TypeConfig } from './datasets';
 import { prometheusTypeConfig } from './datasets/prometheus_type';
+import { cloudwatchTypeConfig } from './datasets/cloudwatch_type';
 import { createQueryAssistExtension } from './query_assist';
 import { pplLanguageReference, sqlLanguageReference } from './query_editor_extensions';
-import { PPLSearchInterceptor, SQLSearchInterceptor } from './search';
+import {
+  CloudWatchLogsSearchInterceptor,
+  PPLSearchInterceptor,
+  SQLSearchInterceptor,
+} from './search';
 import { setData, setStorage, setUiActions } from './services';
 import {
   QueryEnhancementsPluginSetup,
@@ -41,7 +47,7 @@ import {
 import { PPLFilterUtils, SQLFilterUtils } from './search/filters';
 import { NaturalLanguageFilterUtils } from './search/filters/natural_language_filter_utils';
 import { PromQLSearchInterceptor } from './search/promql_search_interceptor';
-import { PrometheusResourceClient } from './resources';
+import { CloudWatchResourceClient, PrometheusResourceClient } from './resources';
 import { registerPplLint } from './ppl_lint/register_ppl_lint';
 
 export class QueryEnhancementsPlugin implements Plugin<
@@ -343,6 +349,68 @@ export class QueryEnhancementsPlugin implements Plugin<
 
     // Register prometheus resource client
     data.resourceClientFactory.register('prometheus', (http) => new PrometheusResourceClient(http));
+
+    // CloudWatch Logs (PoC): a hardcoded virtual dataset whose query runs a
+    // CloudWatch Logs Insights query against the selected log group(s)/stream(s).
+    const cloudwatchLanguageConfig: LanguageConfig = {
+      id: CLOUDWATCH_LANGUAGE,
+      title: 'CloudWatch Logs Insights',
+      search: new CloudWatchLogsSearchInterceptor({
+        toasts: core.notifications.toasts,
+        http: core.http,
+        uiSettings: core.uiSettings,
+        startServices: core.getStartServices(),
+        usageCollector: data.search.usageCollector,
+      }),
+      getQueryString: () =>
+        'fields @timestamp, @message, @logStream | sort @timestamp desc | limit 1000',
+      fields: {
+        sortable: false,
+        filterable: false,
+        visualizable: false,
+        formatter: (value: string, type: OSD_FIELD_TYPES) => {
+          switch (type) {
+            case OSD_FIELD_TYPES.DATE:
+              return moment.utc(value).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+            default:
+              return value;
+          }
+        },
+      },
+      docLink: {
+        title: i18n.translate('queryEnhancements.cloudwatchLanguage.docLink', {
+          defaultMessage: 'CloudWatch Logs Insights syntax',
+        }),
+        url: 'https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html',
+      },
+      showDocLinks: false,
+      editor: createEditor(SingleLineInput, null, pplControls, DefaultInput),
+      editorSupportedAppNames: ['discover', 'explore'],
+      supportedAppNames: ['discover', 'data-explorer', 'explore'],
+      sampleQueries: [
+        {
+          title: i18n.translate('queryEnhancements.cloudwatchSampleQuery.recentMessages', {
+            defaultMessage: 'Most recent log messages',
+          }),
+          query: 'fields @timestamp, @message | sort @timestamp desc | limit 20',
+        },
+        {
+          title: i18n.translate('queryEnhancements.cloudwatchSampleQuery.errorsOnly', {
+            defaultMessage: 'Messages containing "error"',
+          }),
+          query:
+            'fields @timestamp, @message | filter @message like /(?i)error/ | sort @timestamp desc | limit 100',
+        },
+      ],
+    };
+    queryString.getLanguageService().registerLanguage(cloudwatchLanguageConfig);
+    queryString.getDatasetService().registerType(cloudwatchTypeConfig);
+
+    // Register CloudWatch resource client (backs the log-group / log-stream dropdowns).
+    data.resourceClientFactory.register(
+      DATASET.CLOUDWATCH,
+      (http) => new CloudWatchResourceClient(http)
+    );
 
     return {
       isQuerySummaryCollapsed$: this.isQuerySummaryCollapsed$,

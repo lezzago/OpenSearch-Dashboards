@@ -81,6 +81,9 @@ export const defaultPrepareQueryString = (query: Query): string => {
       return defaultPreparePplQuery(query).query;
     case 'SQL':
     case 'PROMQL':
+    // CloudWatch Logs Insights (registered by the query_enhancements plugin) passes its
+    // raw Insights query string straight through, like SQL/PROMQL.
+    case 'CloudWatch Logs Insights':
       return query.query as string;
     default:
       throw new Error(
@@ -98,6 +101,18 @@ export const shouldSkipQueryExecution = (query: Query): boolean => {
     case 'PROMQL':
       const queryValue = query.query;
       return typeof queryValue !== 'string' || !queryValue.trim();
+    case 'CloudWatch Logs Insights': {
+      // Skip until the CloudWatch dataset carries at least one log group or wildcard
+      // pattern (chosen in the dataset picker). The CloudWatch strategy requires a
+      // log group; this avoids an error before a dataset with groups is selected.
+      const meta = (query.dataset?.dataSource?.meta ?? {}) as {
+        logGroups?: string[];
+        logGroupPatterns?: string[];
+      };
+      const hasGroups = Array.isArray(meta.logGroups) && meta.logGroups.length > 0;
+      const hasPatterns = Array.isArray(meta.logGroupPatterns) && meta.logGroupPatterns.length > 0;
+      return !hasGroups && !hasPatterns;
+    }
     default:
       return false;
   }
@@ -279,6 +294,7 @@ export const executeQueries = createAsyncThunk<
   const needsHistogramQuery =
     query.language !== 'PROMQL' &&
     query.language !== 'SQL' && // Disable histograms for SQL
+    query.language !== 'CloudWatch Logs Insights' && // CloudWatch results aren't date-histogram aggregatable
     (!results[histogramCacheKey] ||
       histogramQueryStatus?.status === QueryExecutionStatus.UNINITIALIZED);
   const promises = [];

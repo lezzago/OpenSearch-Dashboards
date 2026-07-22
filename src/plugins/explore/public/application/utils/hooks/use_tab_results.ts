@@ -34,7 +34,14 @@ export const useTabResults = () => {
   // the metadata reference changes (i.e. when new results arrive). The actual hits are then
   // read from resultsCache, which was already populated by the middleware before Redux
   // notified this selector. Do not read hits from state.results — it holds metadata only.
-  const metadata = useSelector((state: RootState) => (cacheKey ? state.results[cacheKey] : null));
+  // Use a null check rather than truthiness: an empty-string cache key is valid (e.g.
+  // CloudWatch Logs Insights runs with an empty query string, whose prepared cache key
+  // is ''). Treating '' as "no key" here previously left the Statistics/Visualization
+  // tabs empty even though the results were cached. Mirrors ExploreDataTable, which
+  // reads state.results[cacheKey] without a truthiness guard.
+  const metadata = useSelector((state: RootState) =>
+    cacheKey != null ? state.results[cacheKey] : null
+  );
   const status = useSelector((state: RootState) => selectQueryStatusMapByKey(state, cacheKey));
 
   return {

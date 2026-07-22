@@ -19,6 +19,7 @@ import { SEARCH_STRATEGY } from '../common';
 import { ConfigSchema } from '../common/config';
 import { defineRoutes, defineSearchStrategyRouteProvider } from './routes';
 import {
+  cloudwatchLogsSearchStrategyProvider,
   pplAsyncSearchStrategyProvider,
   pplRawSearchStrategyProvider,
   pplSearchStrategyProvider,
@@ -36,6 +37,7 @@ import { resourceManagerService } from './connections/resource_manager_service';
 import { queryManagerService } from './connections/query_manager_service';
 import { BaseConnectionManager } from './connections/managers/base_connection_manager';
 import { prometheusManager } from './connections/managers/prometheus_manager';
+import { cloudwatchManager } from './connections/managers/cloudwatch_manager';
 import { getPplLintRuleSettings } from './ui_settings';
 
 export class QueryEnhancementsPlugin implements Plugin<
@@ -132,6 +134,7 @@ export class QueryEnhancementsPlugin implements Plugin<
     );
     const pplRawSearchStrategy = pplRawSearchStrategyProvider(this.config$, this.logger, client);
     const promqlSearchStrategy = promqlSearchStrategyProvider(this.config$, this.logger);
+    const cloudwatchLogsSearchStrategy = cloudwatchLogsSearchStrategyProvider(this.logger);
     const sqlSearchStrategy = sqlSearchStrategyProvider(
       this.config$,
       this.logger,
@@ -155,6 +158,10 @@ export class QueryEnhancementsPlugin implements Plugin<
     data.search.registerSearchStrategy(SEARCH_STRATEGY.SQL_ASYNC, sqlAsyncSearchStrategy);
     data.search.registerSearchStrategy(SEARCH_STRATEGY.PPL_ASYNC, pplAsyncSearchStrategy);
     data.search.registerSearchStrategy(SEARCH_STRATEGY.PROMQL, promqlSearchStrategy);
+    data.search.registerSearchStrategy(
+      SEARCH_STRATEGY.CLOUDWATCH_LOGS,
+      cloudwatchLogsSearchStrategy
+    );
 
     const getCapabilitiesResolver = () => this.capabilitiesResolver;
 
@@ -185,10 +192,17 @@ export class QueryEnhancementsPlugin implements Plugin<
       promql: promqlSearchStrategy,
       sqlasync: sqlAsyncSearchStrategy,
       pplasync: pplAsyncSearchStrategy,
+      [SEARCH_STRATEGY.CLOUDWATCH_LOGS]: cloudwatchLogsSearchStrategy,
     });
 
     resourceManagerService.register('prometheus', prometheusManager);
     queryManagerService.register('prometheus', prometheusManager);
+
+    // CloudWatch PoC: serve the log-group / log-stream dropdowns via the resources route.
+    // The dataset type used on the client is DATASET.CLOUDWATCH ('CLOUDWATCH'); the
+    // resource route dispatches by connection.type, so register under the same key.
+    cloudwatchManager.setLogger(this.logger);
+    resourceManagerService.register('CLOUDWATCH', cloudwatchManager);
 
     this.logger.info('queryEnhancements: Setup complete');
     return {

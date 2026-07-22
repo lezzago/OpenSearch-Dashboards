@@ -4,6 +4,7 @@
  */
 
 import { DatasetSelectWidget } from './dataset_select';
+import { CloudWatchEditControls } from './cloudwatch_edit_controls';
 import { SaveQueryButton } from './save_query';
 import { RecentQueriesButton } from './recent_queries_button';
 import { LanguageToggle } from './language_toggle';
@@ -28,6 +29,9 @@ export const QueryPanelWidgets = () => {
       <div className="exploreQueryPanelWidgets__left">
         <LanguageToggle />
         {!isMetrics && <DatasetSelectWidget />}
+        {/* CloudWatch PoC: in-place editor for the active CloudWatch dataset's log
+            groups/streams. Renders null for non-CloudWatch datasets. */}
+        <CloudWatchEditControls />
         <div className="exploreQueryPanelWidgets__verticalSeparator" />
         <RecentQueriesButton />
         <div className="exploreQueryPanelWidgets__verticalSeparator" />
