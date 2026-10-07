@@ -24,6 +24,10 @@ import {
   getRenderAssociatedObjectsDetailsFlyout,
 } from './plugin';
 import { AuthenticationMethodRegistry } from './auth_registry';
+import {
+  DATA_CONNECTION_FLOW_CONTRACT_VERSION,
+  DataConnectionFlowRegistry,
+} from './data_connection_flow_registry';
 
 describe('#dataSourceManagement', () => {
   let coreSetup: any;
@@ -33,6 +37,7 @@ describe('#dataSourceManagement', () => {
   beforeEach(() => {
     mockDataSourceManagementPluginStart = {
       getAuthenticationMethodRegistry: jest.fn(() => new AuthenticationMethodRegistry()),
+      getDataConnectionFlowRegistry: jest.fn(() => new DataConnectionFlowRegistry()),
     };
 
     coreSetup = {
@@ -107,6 +112,47 @@ describe('#dataSourceManagement', () => {
     expect(() => {
       setup?.registerAuthenticationMethod(createAuthenticationMethod({ name: 'typeB' }));
     }).toThrow('cannot call `registerAuthenticationMethod` after data source management startup.');
+  });
+
+  it('can register a data connection flow and read it from the start registry', () => {
+    const { setup, doStart } = testDataSourceManagementPlugin(coreSetup, coreStart);
+    const flow = {
+      id: 'example-flow',
+      title: 'Example connections',
+      buttonLabel: 'Connect example data connection',
+      mount: jest.fn(() => jest.fn()),
+    };
+    expect(setup.registerDataConnectionFlow).toBeInstanceOf(Function);
+    setup.registerDataConnectionFlow(flow);
+    const registry = doStart().getDataConnectionFlowRegistry();
+    expect(registry.hasFlows()).toBe(true);
+    expect(registry.getFlow('example-flow')).toEqual(flow);
+  });
+
+  it('exposes the data connection flow contract version on the setup contract', () => {
+    const { setup } = testDataSourceManagementPlugin(coreSetup, coreStart);
+    expect(DATA_CONNECTION_FLOW_CONTRACT_VERSION).toBe(1);
+    expect(setup.dataConnectionFlowContractVersion).toBe(DATA_CONNECTION_FLOW_CONTRACT_VERSION);
+  });
+
+  it('exposes an empty data connection flow registry when nothing is registered', () => {
+    const { doStart } = testDataSourceManagementPlugin(coreSetup, coreStart);
+    const registry = doStart().getDataConnectionFlowRegistry();
+    expect(registry.hasFlows()).toBe(false);
+    expect(registry.getAllFlows()).toEqual([]);
+  });
+
+  it('should throw error if registering a data connection flow after startup', () => {
+    const { setup, doStart } = testDataSourceManagementPlugin(coreSetup, coreStart);
+    doStart();
+    expect(() => {
+      setup.registerDataConnectionFlow({
+        id: 'late',
+        title: 'Late',
+        buttonLabel: 'Late',
+        mount: jest.fn(),
+      });
+    }).toThrow('cannot call `registerDataConnectionFlow` after data source management startup.');
   });
 
   it('should register application in the management section', () => {

@@ -25,6 +25,13 @@ export {
   DataSourceMultiSelectableConfig,
   createDataSourceMenu,
 } from './components/data_source_menu';
+export {
+  DATA_CONNECTION_FLOW_CONTRACT_VERSION,
+  DataConnectionFlow,
+  DataConnectionFlowMountParams,
+  DataConnectionFlowSavedObject,
+  IDataConnectionFlowRegistry,
+} from './data_connection_flow_registry';
 export { DataSourceSelectionService } from './service/data_source_selection_service';
 export { getDefaultDataSourceId, getDefaultDataSourceId$ } from './components/utils';
 export { DATACONNECTIONS_BASE, DatasourceTypeToDisplayName } from './constants';
