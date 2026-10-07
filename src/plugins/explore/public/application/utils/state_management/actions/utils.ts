@@ -290,6 +290,65 @@ export const buildSQLHistogramQuery = (
   );
 };
 
+const PPL_COUNT_COLUMN_REGEX = /^count(\(\s*\*?\s*\))?$/i;
+const PPL_BUCKET_COLUMN_REGEX = /^(span|bin)\s*\(/i;
+const NUMERIC_FIELD_TYPES = new Set([
+  'byte',
+  'short',
+  'integer',
+  'long',
+  'unsigned_long',
+  'float',
+  'half_float',
+  'scaled_float',
+  'double',
+  'number',
+]);
+const TIME_FIELD_TYPES = new Set(['date', 'date_nanos', 'timestamp']);
+
+/**
+ * Identify the count and time-bucket columns of a single-series PPL histogram response
+ * (`stats count() by span(...)`). OpenSearch returns `[count(), span(...)]`, but other PPL engines
+ * can return the columns in the reverse order (e.g. `[bin(@timestamp, 30s), count(*)]`), so
+ * columns are matched by name first, then by type, falling back to OpenSearch's positional order.
+ */
+export const resolvePPLHistogramColumns = (
+  fieldSchema?: Array<{ name?: string; type?: string }>
+): { countField: string; bucketField: string } | undefined => {
+  if (!fieldSchema || fieldSchema.length < 2) return undefined;
+  const nameOf = (idx: number) => fieldSchema[idx]?.name ?? '';
+  const typeOf = (idx: number) => String(fieldSchema[idx]?.type ?? '').toLowerCase();
+
+  let countIdx = fieldSchema.findIndex((_c, i) => PPL_COUNT_COLUMN_REGEX.test(nameOf(i)));
+  let bucketIdx = fieldSchema.findIndex(
+    (_c, i) =>
+      i !== countIdx &&
+      (PPL_BUCKET_COLUMN_REGEX.test(nameOf(i)) ||
+        nameOf(i) === '@timestamp' ||
+        TIME_FIELD_TYPES.has(typeOf(i)))
+  );
+  if (countIdx === -1) {
+    countIdx = fieldSchema.findIndex(
+      (_c, i) => i !== bucketIdx && NUMERIC_FIELD_TYPES.has(typeOf(i))
+    );
+  }
+  if (fieldSchema.length === 2) {
+    if (countIdx === -1 && bucketIdx !== -1) countIdx = bucketIdx === 0 ? 1 : 0;
+    if (bucketIdx === -1 && countIdx !== -1) bucketIdx = countIdx === 0 ? 1 : 0;
+  }
+  if (countIdx === -1 || bucketIdx === -1 || countIdx === bucketIdx) {
+    // OpenSearch PPL order.
+    countIdx = 0;
+    bucketIdx = 1;
+  }
+  return { countField: nameOf(countIdx), bucketField: nameOf(bucketIdx) };
+};
+
+const toHistogramCount = (value: unknown): number => {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
 export const processRawResultsForHistogram = (
   queryString: string,
   rawResults: ISearchResult,
@@ -439,11 +498,10 @@ export const processRawResultsForHistogram = (
 
     const timestampIdx = fieldSchema.findIndex((col: any) => col.name === '@timestamp');
     const breakdownIdx = fieldSchema.findIndex((col: any) => col.name === breakdownField);
-    // Support both 'count' and 'count()' column names from PPL
-    let countIdx = fieldSchema.findIndex((col: any) => col.name === 'count()');
-    if (countIdx === -1) {
-      countIdx = fieldSchema.findIndex((col: any) => col.name === 'count');
-    }
+    // Support 'count', 'count()' and 'count(*)' column names from PPL
+    const countIdx = fieldSchema.findIndex((col: any) =>
+      PPL_COUNT_COLUMN_REGEX.test(col.name ?? '')
+    );
 
     if (breakdownIdx === -1 || countIdx === -1) {
       return rawResults;
@@ -485,20 +543,19 @@ export const processRawResultsForHistogram = (
   } else {
     const responseAggs: any = {};
 
+    const columns = resolvePPLHistogramColumns(rawResults?.fieldSchema as any);
     for (const [key, _aggQueryString] of Object.entries(aggsConfig.qs)) {
       responseAggs[key] = rawResults?.hits.hits.map((hit) => {
-        if (rawResults?.fieldSchema && rawResults.fieldSchema.length >= 2) {
-          const valueField = rawResults.fieldSchema[0].name!;
-          const keyField = rawResults.fieldSchema[1].name!;
+        if (columns) {
           return {
-            key: hit._source[keyField],
-            value: hit._source[valueField],
+            key: hit._source[columns.bucketField],
+            value: toHistogramCount(hit._source[columns.countField]),
           };
         }
         const sourceValues = Object.values(hit._source);
         return {
           key: sourceValues[1],
-          value: sourceValues[0],
+          value: toHistogramCount(sourceValues[0]),
         };
       });
     }
@@ -508,13 +565,14 @@ export const processRawResultsForHistogram = (
     Object.entries(responseAggs).forEach(([id, value]) => {
       if (aggsConfig && aggsConfig.date_histogram) {
         let totalHits = 0;
-        const buckets = value as Array<{ key: string; value: number }>;
+        const buckets = value as Array<{ key: string | number; value: number }>;
         tempResult.aggregations[id] = {
           buckets: buckets.map((bucket) => {
-            const timestamp = parseTimestampToMs(bucket.key);
+            const timestamp =
+              typeof bucket.key === 'number' ? bucket.key : parseTimestampToMs(String(bucket.key));
             totalHits += bucket.value;
             return {
-              key_as_string: bucket.key,
+              key_as_string: String(bucket.key),
               key: timestamp,
               doc_count: bucket.value,
             };

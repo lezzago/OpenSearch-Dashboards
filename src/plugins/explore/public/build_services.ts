@@ -17,6 +17,7 @@ import { VisualizationRegistryService } from './services/visualization_registry_
 import { AppStore } from './application/utils/state_management/store';
 import { QueryPanelActionsRegistryService } from './services/query_panel_actions_registry';
 import { SlotRegistryService } from './services/slot_registry';
+import { withRegisteredSupportedTypes } from './helpers/supported_dataset_types';
 
 export function buildServices(
   core: CoreStart,
@@ -33,7 +34,11 @@ export function buildServices(
   dataSourceManagement?: ExploreServices['dataSourceManagement']
 ): ExploreServices {
   const config = context.config.get<ConfigSchema>();
-  const supportedTypes = config.supportedTypes;
+  // Static config plus plugin-registered types that opt in via meta.appendToSupportedTypes.
+  const supportedTypes = withRegisteredSupportedTypes(
+    config.supportedTypes,
+    plugins.data?.query?.queryString?.getDatasetService?.()
+  );
   const services: SavedObjectOpenSearchDashboardsServices = {
     savedObjectsClient: core.savedObjects.client,
     indexPatterns: plugins.data.indexPatterns,

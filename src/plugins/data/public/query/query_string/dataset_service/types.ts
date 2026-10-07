@@ -72,6 +72,13 @@ export interface DatasetTypeConfig {
     cacheOptions?: boolean;
     /** Optional list of supported apps. If undefined, it will show up in all apps */
     supportedAppNames?: string[];
+    /**
+     * Optional list of app names (e.g. `['explore']`) whose default dataset `supportedTypes` this
+     * type should be appended to. Unlike `supportedAppNames` (a filter), this opts the type in to
+     * apps that otherwise only offer a fixed set of types, so plugins can add a type without the
+     * app hardcoding it. Types that do not set it are unaffected.
+     */
+    appendToSupportedTypes?: string[];
   };
   /**
    * Converts a DataStructure to a Dataset.

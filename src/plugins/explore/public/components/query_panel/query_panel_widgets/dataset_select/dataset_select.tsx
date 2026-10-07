@@ -20,6 +20,7 @@ import { useClearEditors } from '../../../../application/hooks';
 import { EXPLORE_DEFAULT_LANGUAGE } from '../../../../../common';
 import './dataset_select_terminology.scss';
 import { ExploreFlavor } from '../../../../../common';
+import { withRegisteredSupportedTypes } from '../../../../helpers/supported_dataset_types';
 
 export const DatasetSelectWidget = () => {
   const { services } = useOpenSearchDashboards<ExploreServices>();
@@ -110,13 +111,16 @@ export const DatasetSelectWidget = () => {
       return getSourceTypeRegistry().get(activeSourceTypeId)?.datasetTypes;
     }
 
-    return (
+    // Re-resolve opted-in registered types here too: a plugin may register its type
+    // asynchronously, after buildServices ran for this mount.
+    return withRegisteredSupportedTypes(
       services.supportedTypes || [
         DEFAULT_DATA.SET_TYPES.INDEX,
         DEFAULT_DATA.SET_TYPES.INDEX_PATTERN,
-      ]
+      ],
+      queryString.getDatasetService?.()
     );
-  }, [services.supportedTypes, flavorId, isRegisteredSource, activeSourceTypeId]);
+  }, [services.supportedTypes, flavorId, isRegisteredSource, activeSourceTypeId, queryString]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 

@@ -799,4 +799,63 @@ describe('DatasetSelect', () => {
       expect(mockOnSelect).not.toHaveBeenCalled();
     });
   });
+
+  describe('datasets not in the quick list', () => {
+    const EXAMPLE_TYPE = 'EXAMPLE_TYPE';
+    const exampleDataset = { id: 'dataset-1', title: 'example-dataset', type: EXAMPLE_TYPE };
+
+    it('shows a selected dataset that is not in an empty list once loading completes', async () => {
+      mockQueryService.queryString.getQuery = jest
+        .fn()
+        .mockReturnValue({ dataset: exampleDataset });
+      mockQueryService.queryString.getDatasetService = jest
+        .fn()
+        .mockReturnValue(makeDatasetService(makeIndexPatternType([])));
+      mockDataViews.get = jest.fn().mockResolvedValue(undefined);
+
+      renderWithContext();
+
+      await waitFor(() => {
+        expect(screen.getByText('example-dataset')).toBeInTheDocument();
+      });
+      expect(screen.queryByText('Select dataset')).not.toBeInTheDocument();
+      expect(mockDataViews.get).toHaveBeenCalledWith('dataset-1', true);
+    });
+
+    it('does not list the intermediate children of a type whose root has further levels', async () => {
+      const indexPatternType = makeIndexPatternType([defaultChild]);
+      const exampleType = {
+        id: EXAMPLE_TYPE,
+        title: 'Example',
+        meta: { icon: { type: 'database' } },
+        fetch: jest.fn().mockResolvedValue({
+          id: EXAMPLE_TYPE,
+          title: 'Example',
+          type: EXAMPLE_TYPE,
+          hasNext: true,
+          children: [{ id: 'conn-1', title: 'example-connection', type: 'DATA_CONNECTION' }],
+        }),
+        toDataset: jest.fn((path: DataStructure[]) => ({
+          id: path[path.length - 1].id,
+          title: path[path.length - 1].title,
+          type: EXAMPLE_TYPE,
+        })),
+      };
+      mockQueryService.queryString.getDatasetService = jest.fn().mockReturnValue({
+        getType: jest.fn((type: string) =>
+          type === EXAMPLE_TYPE ? exampleType : indexPatternType
+        ),
+        cacheDataset: jest.fn(),
+        isDatasetAllowed: jest.fn().mockReturnValue(true),
+      });
+
+      renderWithContext({ ...defaultProps, supportedTypes: [INDEX_PATTERN, EXAMPLE_TYPE] });
+
+      await openPopover();
+
+      expect(exampleType.fetch).toHaveBeenCalled();
+      expect(exampleType.toDataset).not.toHaveBeenCalled();
+      expect(screen.queryByText('example-connection')).not.toBeInTheDocument();
+    });
+  });
 });
