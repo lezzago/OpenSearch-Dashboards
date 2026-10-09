@@ -97,6 +97,7 @@ import {
   IDataFramePollingResponse,
   IDataFrameResponse,
   QueryStartedResponse,
+  QueryFailedStatusResponse,
   QuerySuccessStatusResponse,
   convertResult,
   createDataFrame,
@@ -510,6 +511,14 @@ export class SearchSource {
                 },
               }),
             });
+          } else if (status === 'failed') {
+            // A strategy can fail the query synchronously at start (e.g. a pre-flight validation
+            // or a rejected start call). Surface its message instead of a generic state error.
+            const failedError = (response as QueryFailedStatusResponse).body?.error;
+            throw new Error(
+              (typeof failedError === 'string' ? failedError : failedError?.message) ||
+                'Query failed'
+            );
           } else {
             throw new Error('Invalid query state');
           }

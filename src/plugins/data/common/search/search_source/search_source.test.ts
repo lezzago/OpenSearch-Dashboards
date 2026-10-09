@@ -33,6 +33,7 @@ import { IndexPattern } from '../../index_patterns';
 import { GetConfigFn } from '../../types';
 import { fetchSoon } from './legacy';
 import { SearchSource, SearchSourceDependencies, SortDirection } from './';
+import { DATA_FRAME_TYPES } from '../../data_frames';
 
 jest.mock('./legacy', () => ({
   fetchSoon: jest.fn().mockResolvedValue({}),
@@ -233,6 +234,42 @@ describe('SearchSource', () => {
       const request = searchSource.history[0];
       expect(mockSearchMethod).toHaveBeenCalledTimes(1);
       expect(request.dataSourceId).toEqual(dataSourceId);
+    });
+  });
+
+  describe('#fetchExternalSearch() polling', () => {
+    const request = { index: { id: 'ds', title: 'ds' }, body: {} } as any;
+
+    test('surfaces the strategy error when the query fails at start', async () => {
+      mockSearchMethod.mockResolvedValue({
+        type: DATA_FRAME_TYPES.POLLING,
+        status: 'failed',
+        body: { error: 'Query rejected by the data source' },
+      });
+      const searchSource = new SearchSource({}, searchSourceDependencies);
+      await expect((searchSource as any).fetchExternalSearch(request, {})).rejects.toThrow(
+        'Query rejected by the data source'
+      );
+    });
+
+    test('uses the message of an Error-shaped failure body', async () => {
+      mockSearchMethod.mockResolvedValue({
+        type: DATA_FRAME_TYPES.POLLING,
+        status: 'failed',
+        body: { error: { message: 'Access denied' } },
+      });
+      const searchSource = new SearchSource({}, searchSourceDependencies);
+      await expect((searchSource as any).fetchExternalSearch(request, {})).rejects.toThrow(
+        'Access denied'
+      );
+    });
+
+    test('still rejects unknown polling states', async () => {
+      mockSearchMethod.mockResolvedValue({ type: DATA_FRAME_TYPES.POLLING, status: 'weird' });
+      const searchSource = new SearchSource({}, searchSourceDependencies);
+      await expect((searchSource as any).fetchExternalSearch(request, {})).rejects.toThrow(
+        'Invalid query state'
+      );
     });
   });
 
