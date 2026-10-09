@@ -14,6 +14,7 @@ import {
   EuiPageHeader,
   EuiPanel,
   EuiButtonGroup,
+  EuiSmallButton,
 } from '@elastic/eui';
 import { TopNavControlButtonData, TopNavControlComponentData } from 'src/plugins/navigation/public';
 import { i18n } from '@osd/i18n';
@@ -27,6 +28,14 @@ import { useOpenSearchDashboards } from '../../../../opensearch_dashboards_react
 import { getListBreadcrumbs } from '../breadcrumbs';
 import { DataSourceManagementContext } from '../../types';
 import { TopNavControlDescriptionData } from '../../../../navigation/public';
+import {
+  DataConnectionFlow,
+  getVisibleDataConnectionFlows,
+} from '../../data_connection_flow_registry';
+import {
+  DIRECT_QUERY_CONNECTIONS_TAB_ID,
+  getDataConnectionFlowPath,
+} from '../data_connection_flow/constants';
 
 interface DataSourceHomePanelProps extends RouteComponentProps {
   featureFlagStatus: boolean;
@@ -38,20 +47,58 @@ export const DataSourceHomePanel: React.FC<DataSourceHomePanelProps> = ({
   useNewUX,
   ...props
 }) => {
-  const { setBreadcrumbs, application, workspaces, docLinks, navigation } =
-    useOpenSearchDashboards<DataSourceManagementContext>().services;
+  const {
+    setBreadcrumbs,
+    application,
+    workspaces,
+    docLinks,
+    navigation,
+    dataConnectionFlowRegistry,
+  } = useOpenSearchDashboards<DataSourceManagementContext>().services;
 
   const defaultTabId = featureFlagStatus
     ? 'manageOpensearchDataSources'
     : 'manageDirectQueryDataSources';
-  const [selectedTabId, setSelectedTabId] = useState(defaultTabId);
+  // Data connection flows navigate back to the list with the Direct query connections
+  // tab pre-selected via location state.
+  const locationState = (props.location ?? props.history?.location)?.state as
+    { selectedTabId?: string } | undefined;
+  const initialTabId =
+    dataConnectionFlowRegistry?.hasFlows() &&
+    locationState?.selectedTabId === DIRECT_QUERY_CONNECTIONS_TAB_ID
+      ? DIRECT_QUERY_CONNECTIONS_TAB_ID
+      : defaultTabId;
+  const [selectedTabId, setSelectedTabId] = useState(initialTabId);
   const canManageDataSource = !!application.capabilities?.dataSource?.canManage;
+  // Data connection flows are independent of canManage (which gates the generic Create):
+  // they are offered to dashboard admins only (fail closed), and each flow's isVisible decides.
+  const isDashboardAdmin = application.capabilities?.dashboards?.isDashboardAdmin === true;
   const { HeaderControl } = navigation.ui;
   const currentWorkspace = useObservable(workspaces ? workspaces.currentWorkspace$ : of(null));
+  const [visibleFlows, setVisibleFlows] = useState<DataConnectionFlow[]>([]);
 
   useEffect(() => {
     setBreadcrumbs(getListBreadcrumbs());
   }, [setBreadcrumbs]);
+
+  useEffect(() => {
+    if (!isDashboardAdmin || !dataConnectionFlowRegistry?.hasFlows()) {
+      return;
+    }
+    let cancelled = false;
+    getVisibleDataConnectionFlows(dataConnectionFlowRegistry.getAllFlows()).then((flows) => {
+      if (!cancelled) {
+        setVisibleFlows(flows);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isDashboardAdmin, dataConnectionFlowRegistry]);
+
+  const isDirectQueryTabSelected =
+    !featureFlagStatus || selectedTabId === DIRECT_QUERY_CONNECTIONS_TAB_ID;
+  const shownFlows = isDashboardAdmin && isDirectQueryTabSelected ? visibleFlows : [];
 
   const onSelectedTabChanged = (id: string) => {
     setSelectedTabId(id);
@@ -67,6 +114,23 @@ export const DataSourceHomePanel: React.FC<DataSourceHomePanelProps> = ({
       iconType: 'plus',
       controlType: 'button',
     } as TopNavControlButtonData,
+  ];
+
+  const dataConnectionFlowButtons = shownFlows.map(
+    (flow) =>
+      ({
+        id: `dataConnectionFlow-${flow.id}`,
+        label: flow.buttonLabel,
+        testId: `dataConnectionFlowButton-${flow.id}`,
+        run: () => props.history.push(getDataConnectionFlowPath(flow.id)),
+        iconType: 'plus',
+        controlType: 'button',
+      }) as TopNavControlButtonData
+  );
+
+  const headerRightControls = [
+    ...dataConnectionFlowButtons,
+    ...(canManageDataSource ? createDataSourceButton : []),
   ];
 
   // @ts-expect-error TS6133 TODO(ts-error): fixme
@@ -139,10 +203,10 @@ export const DataSourceHomePanel: React.FC<DataSourceHomePanelProps> = ({
     <>
       {useNewUX && (
         <>
-          {canManageDataSource && (
+          {headerRightControls.length > 0 && (
             <HeaderControl
               setMountPoint={application.setAppRightControls}
-              controls={createDataSourceButton}
+              controls={headerRightControls}
             />
           )}
           <HeaderControl
@@ -181,13 +245,40 @@ export const DataSourceHomePanel: React.FC<DataSourceHomePanelProps> = ({
                         featureFlagStatus={featureFlagStatus}
                       />
                     </EuiFlexItem>
-                    {canManageDataSource ? (
+                    {canManageDataSource || shownFlows.length > 0 ? (
                       <EuiFlexItem grow={false}>
-                        <CreateButton
-                          history={props.history}
-                          featureFlagStatus={featureFlagStatus}
-                          dataTestSubj="createDataSourceButton"
-                        />
+                        {shownFlows.length > 0 ? (
+                          <EuiFlexGroup gutterSize="s" alignItems="center" responsive={false}>
+                            {shownFlows.map((flow) => (
+                              <EuiFlexItem grow={false} key={flow.id}>
+                                <EuiSmallButton
+                                  iconType="plus"
+                                  data-test-subj={`dataConnectionFlowButton-${flow.id}`}
+                                  onClick={() =>
+                                    props.history.push(getDataConnectionFlowPath(flow.id))
+                                  }
+                                >
+                                  {flow.buttonLabel}
+                                </EuiSmallButton>
+                              </EuiFlexItem>
+                            ))}
+                            {canManageDataSource && (
+                              <EuiFlexItem grow={false}>
+                                <CreateButton
+                                  history={props.history}
+                                  featureFlagStatus={featureFlagStatus}
+                                  dataTestSubj="createDataSourceButton"
+                                />
+                              </EuiFlexItem>
+                            )}
+                          </EuiFlexGroup>
+                        ) : (
+                          <CreateButton
+                            history={props.history}
+                            featureFlagStatus={featureFlagStatus}
+                            dataTestSubj="createDataSourceButton"
+                          />
+                        )}
                       </EuiFlexItem>
                     ) : null}
                   </EuiFlexGroup>
@@ -205,7 +296,7 @@ export const DataSourceHomePanel: React.FC<DataSourceHomePanelProps> = ({
             {selectedTabId === 'manageOpensearchDataSources' && featureFlagStatus && (
               <DataSourceTableWithRouter {...props} />
             )}
-            {(!featureFlagStatus || selectedTabId === 'manageDirectQueryDataSources') && (
+            {isDirectQueryTabSelected && (
               <ManageDirectQueryDataConnectionsTableWithRouter
                 featureFlagStatus={featureFlagStatus}
                 {...props}

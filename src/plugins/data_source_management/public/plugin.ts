@@ -32,6 +32,12 @@ import {
   IAuthenticationMethodRegistry,
   AuthenticationMethodRegistry,
 } from './auth_registry';
+import {
+  DATA_CONNECTION_FLOW_CONTRACT_VERSION,
+  DataConnectionFlow,
+  DataConnectionFlowRegistry,
+  IDataConnectionFlowRegistry,
+} from './data_connection_flow_registry';
 import { noAuthCredentialAuthMethod, sigV4AuthMethod, usernamePasswordAuthMethod } from './types';
 import { DataSourceSelectorProps } from './components/data_source_selector/data_source_selector';
 import { createDataSourceMenu } from './components/data_source_menu/create_data_source_menu';
@@ -81,6 +87,16 @@ export interface DataSourceManagementSetupDependencies {
 
 export interface DataSourceManagementPluginSetup {
   registerAuthenticationMethod: (authMethodValues: AuthenticationMethod) => void;
+  /**
+   * Registers a pluggable data connection flow rendered by the data sources app under
+   * `/flows/<id>`. Must be called during setup; throws after data source management startup.
+   */
+  registerDataConnectionFlow: (flow: DataConnectionFlow) => void;
+  /**
+   * Version of the {@link DataConnectionFlow} contract (`DATA_CONNECTION_FLOW_CONTRACT_VERSION`).
+   * Bumped on breaking contract changes.
+   */
+  dataConnectionFlowContractVersion: typeof DATA_CONNECTION_FLOW_CONTRACT_VERSION;
   ui: {
     DataSourceSelector: React.ComponentType<DataSourceSelectorProps> | null;
     getDataSourceMenu: <T>() => React.ComponentType<
@@ -94,6 +110,7 @@ export interface DataSourceManagementPluginSetup {
 
 export interface DataSourceManagementPluginStart {
   getAuthenticationMethodRegistry: () => IAuthenticationMethodRegistry;
+  getDataConnectionFlowRegistry: () => IDataConnectionFlowRegistry;
 }
 
 /**
@@ -109,6 +126,7 @@ export class DataSourceManagementPlugin implements Plugin<
 > {
   private started: boolean = false;
   private authMethodsRegistry: IAuthenticationMethodRegistry = new AuthenticationMethodRegistry();
+  private dataConnectionFlowRegistry = new DataConnectionFlowRegistry();
   private dataSourceSelection: DataSourceSelectionService = new DataSourceSelectionService();
   private featureFlagStatus: boolean = false;
   private bannerId: string | null = null;
@@ -156,7 +174,8 @@ export class DataSourceManagementPlugin implements Plugin<
           core.getStartServices,
           params,
           this.authMethodsRegistry,
-          this.featureFlagStatus
+          this.featureFlagStatus,
+          this.dataConnectionFlowRegistry
         );
       },
     });
@@ -184,7 +203,8 @@ export class DataSourceManagementPlugin implements Plugin<
               wrapInPage: true,
             },
             this.authMethodsRegistry,
-            this.featureFlagStatus
+            this.featureFlagStatus,
+            this.dataConnectionFlowRegistry
           );
         },
       });
@@ -215,6 +235,15 @@ export class DataSourceManagementPlugin implements Plugin<
       this.authMethodsRegistry.registerAuthenticationMethod(authMethod);
     };
 
+    const registerDataConnectionFlow = (flow: DataConnectionFlow) => {
+      if (this.started) {
+        throw new Error(
+          'cannot call `registerDataConnectionFlow` after data source management startup.'
+        );
+      }
+      this.dataConnectionFlowRegistry.registerDataConnectionFlow(flow);
+    };
+
     if (dataSource!.noAuthenticationTypeEnabled) {
       registerAuthenticationMethod(noAuthCredentialAuthMethod);
     }
@@ -231,6 +260,8 @@ export class DataSourceManagementPlugin implements Plugin<
 
     return {
       registerAuthenticationMethod,
+      registerDataConnectionFlow,
+      dataConnectionFlowContractVersion: DATA_CONNECTION_FLOW_CONTRACT_VERSION,
       // Other plugins can get this instance from setupDeps and use to get selected data sources.
       dataSourceSelection: this.dataSourceSelection,
       ui: {
@@ -422,6 +453,7 @@ export class DataSourceManagementPlugin implements Plugin<
 
     return {
       getAuthenticationMethodRegistry: () => this.authMethodsRegistry,
+      getDataConnectionFlowRegistry: () => this.dataConnectionFlowRegistry,
     };
   }
 

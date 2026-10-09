@@ -16,6 +16,8 @@ import { ManagementAppMountParams } from '../../../management/public';
 import { NavigationPublicPluginStart } from '../../../navigation/public';
 import { OpenSearchDashboardsContextProvider } from '../../../opensearch_dashboards_react/public';
 import { AuthenticationMethodRegistry } from '../auth_registry';
+import { IDataConnectionFlowRegistry } from '../data_connection_flow_registry';
+import { DataConnectionFlowMountPoint } from '../components/data_connection_flow/data_connection_flow_mount_point';
 import { CreateDataSourceWizardWithRouter } from '../components/create_data_source_wizard';
 import { CreateDataSourcePanel } from '../components/data_source_creation_panel/create_data_source_panel';
 import { DataSourceHomePanel } from '../components/data_source_home_panel/data_source_home_panel';
@@ -36,22 +38,21 @@ export async function mountManagementSection(
     setHeaderActionMenu: (menuMount: MountPoint | undefined) => void;
   },
   authMethodsRegistry: AuthenticationMethodRegistry,
-  featureFlagStatus: boolean
+  featureFlagStatus: boolean,
+  dataConnectionFlowRegistry?: IDataConnectionFlowRegistry
 ) {
-  const [
-    {
-      chrome,
-      application,
-      savedObjects,
-      uiSettings,
-      notifications,
-      overlays,
-      http,
-      docLinks,
-      workspaces,
-    },
-    { navigation },
-  ] = await getStartServices();
+  const [coreStart, { navigation }] = await getStartServices();
+  const {
+    chrome,
+    application,
+    savedObjects,
+    uiSettings,
+    notifications,
+    overlays,
+    http,
+    docLinks,
+    workspaces,
+  } = coreStart;
 
   const deps: DataSourceManagementContext = {
     chrome,
@@ -66,9 +67,11 @@ export async function mountManagementSection(
     setBreadcrumbs: params.setBreadcrumbs,
     authenticationMethodRegistry: authMethodsRegistry,
     workspaces,
+    ...(dataConnectionFlowRegistry?.hasFlows() ? { dataConnectionFlowRegistry } : {}),
   };
 
   const canManageDataSource = !!application.capabilities?.dataSource?.canManage;
+  const isDashboardAdmin = application.capabilities?.dashboards?.isDashboardAdmin === true;
   const useNewUX = uiSettings.get('home:useNewHomePage');
 
   const content = (
@@ -107,6 +110,13 @@ export async function mountManagementSection(
               notifications={notifications}
               useNewUX={useNewUX}
             />
+          </Route>
+        )}
+        {/* Flow routes are for dashboard admins (independent of canManage); the mount point
+            also checks the flow's own isVisible. */}
+        {isDashboardAdmin && dataConnectionFlowRegistry?.hasFlows() && (
+          <Route path={['/flows/:flowId', '/flows/:flowId/*']}>
+            <DataConnectionFlowMountPoint registry={dataConnectionFlowRegistry} core={coreStart} />
           </Route>
         )}
         {featureFlagStatus && (
